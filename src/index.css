@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply text-luxury-black bg-white font-sans antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-serif;
+}
+
+p, li, a {
+  @apply text-base leading-relaxed;
+}
+
+.container {
+  @apply mx-auto px-4 md:px-6 lg:px-8;
+  max-width: 1400px;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center px-6 py-3 rounded-none transition-all duration-200 ease-in-out;
+}
+
+.btn-primary {
+  @apply bg-luxury-black text-white hover:bg-luxury-gray;
+}
+
+.btn-secondary {
+  @apply bg-transparent border border-luxury-black text-luxury-black hover:bg-luxury-black hover:text-white;
+}
+
+.btn-gold {
+  @apply bg-luxury-gold text-luxury-black hover:bg-luxury-gold-light;
+}
+
+.luxury-input {
+  @apply w-full px-4 py-3 border-0.5 border-luxury-gray focus:border-luxury-gold focus:ring-0 bg-transparent transition-all duration-200;
+}
+
+.product-card-hover {
+  @apply transition-all duration-300 hover:shadow-md;
+}
+
+/* Smooth transitions */
+.page-transition {
+  @apply transition-opacity duration-500;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-luxury-gray rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-luxury-gold;
+}

@@ -1,0 +1,205 @@
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import DailySummary from '../components/admin/DailySummary';
+import OrderTrendsChart from '../components/admin/OrderTrendsChart';
+import FilterBar from '../components/admin/FilterBar';
+import CustomerModal from '../components/admin/CustomerModal';
+import { Helmet } from 'react-helmet-async';
+import { 
+  Order, 
+  OrderItem, 
+  getFilteredOrders, 
+  getOrderWithItems,
+  updateOrderStatus,
+  OrdersFilter 
+} from '../lib/orderService';
+
+interface OrderWithItems extends Order {
+  items?: OrderItem[];
+  expanded?: boolean;
+}
+
+const OrdersAdminPage: React.FC = () => {
+  // Main state for orders list and loading state
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // State for filtering and searching
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  
+  // State for order details
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  
+  // State for customer modal
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState<boolean>(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  
+  // Exchange rate (static for demo purposes)
+  const MADtoUSDRate = 0.1; // 1 MAD = 0.1 USD (example rate)
+  
+  // Format price to USD
+  const formatToUSD = (priceInMAD: number): string => {
+    const priceInUSD = priceInMAD * MADtoUSDRate;
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(priceInUSD);
+  };
+
+  // Fetch orders based on filters
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      try {
+        // Prepare filter
+        const filter: OrdersFilter = {
+          status: selectedStatus || undefined,
+          searchQuery: searchQuery || undefined,
+          startDate: selectedDate,
+          endDate: selectedDate
+        };
+        
+        // Get filtered orders
+        const { data, error } = await getFilteredOrders(filter);
+        
+        if (error) {
+          console.error('Error fetching orders:', error);
+          setError('Failed to fetch orders');
+          return;
+        }
+        
+        setOrders(data || []);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch orders:', err);
+        setError('An unexpected error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchOrders();
+  }, [searchQuery, selectedStatus, selectedDate]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    // Subscribe to orders changes
+    const subscription = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'orders' }, 
+        (payload) => {
+          console.log('Orders change received:', payload);
+          
+          // Refresh the orders list when changes occur
+          refreshOrders();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      // Clean up subscription on component unmount
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Refresh orders function for subscription updates
+  const refreshOrders = async () => {
+    try {
+      const filter: OrdersFilter = {
+        status: selectedStatus || undefined,
+        searchQuery: searchQuery || undefined,
+        startDate: selectedDate,
+        endDate: selectedDate
+      };
+      
+      const { data, error } = await getFilteredOrders(filter);
+      
+      if (error) {
+        console.error('Error refreshing orders:', error);
+        return;
+      }
+      
+      setOrders(data || []);
+    } catch (err) {
+      console.error('Failed to refresh orders:', err);
+    }
+  };
+
+  // Handle expanding a row to show order items
+  const handleExpandRow = async (orderId: string) => {
+    if (expandedOrderId === orderId) {
+      // Collapse row if already expanded
+      setExpandedOrderId(null);
+      return;
+    }
+    
+    // Expand row and fetch order items
+    setExpandedOrderId(orderId);
+    
+    // Find the order in state
+    const orderIndex = orders.findIndex(order => order.id === orderId);
+    if (orderIndex === -1) return;
+    
+    // Check if items are already loaded
+    if (orders[orderIndex].items) return;
+    
+    try {
+      // Fetch order items
+      const { items, error } = await getOrderWithItems(orderId);
+      
+      if (error || !items) {
+        console.error('Error fetching order items:', error);
+        return;
+      }
+      
+      // Update orders state with items
+      const updatedOrders = [...orders];
+      updatedOrders[orderIndex] = { ...updatedOrders[orderIndex], items };
+      setOrders(updatedOrders);
+    } catch (err) {
+      console.error('Failed to fetch order items:', err);
+    }
+  };
+
+  // Handle status change
+  const handleStatusChange = async (orderId: string, newStatus: 'pending' | 'paid' | 'cancelled') => {
+    try {
+      const { success, error } = await updateOrderStatus(orderId, newStatus);
+      
+      if (error || !success) {
+        console.error('Error updating order status:', error);
+        return;
+      }
+      
+      // Refresh orders to get updated data
+      refreshOrders();
+    } catch (err) {
+      console.error('Failed to update order status:', err);
+    }
+  };
+
+  // Handle clicking on a customer to open the modal
+  const handleCustomerClick = (customerName: string) => {
+    setSelectedCustomer(customerName);
+    setIsCustomerModalOpen(true);
+  };
+
+  // Handle resetting filters
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedStatus('');
+    setSelectedDate(new Date());
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string): string => {
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
