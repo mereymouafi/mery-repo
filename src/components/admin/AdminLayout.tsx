@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import AdminNavbar from './AdminNavbar';
 import { motion } from 'framer-motion';
 
 const AdminLayout: React.FC = () => {
+  // Set default zoom level to 90% for admin pages
+  useEffect(() => {
+    // Save current zoom level before changing it
+    const originalZoom = document.body.style.zoom;
+    
+    // Set zoom level to 90%
+    document.body.style.zoom = '90%';
+    
+    // Restore original zoom level when component unmounts
+    return () => {
+      document.body.style.zoom = originalZoom;
+    };
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <AdminNavbar />
