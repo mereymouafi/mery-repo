@@ -7,6 +7,8 @@ import { getBrands, Brand } from '../lib/brandService';
 import { getCategories, Category } from '../lib/categoryService';
 import { getLatestProducts, Product as SupabaseProduct } from '../lib/productService';
 
+// Using external luxury image URLs for slideshow
+
 // Function to generate a slug from a product name
 const generateSlug = (name: string): string => {
   return name
