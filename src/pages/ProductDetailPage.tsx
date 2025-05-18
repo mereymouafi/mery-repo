@@ -542,9 +542,9 @@ const ProductDetailPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Size selector for footwear */}
-                {product.category === 'footwear' && product.sizes && (
+                
+                {/* Size selector */}
+                {product.sizes && product.sizes.length > 0 && (
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <div className="text-sm font-medium text-luxury-black">Size</div>
