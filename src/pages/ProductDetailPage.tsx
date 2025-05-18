@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Minus, Plus, Share, Heart, Check, ShoppingBag, ChevronRight, X } from 'lucide-react';
+import { Minus, Plus, Share, Heart, Check, ShoppingBag, ChevronRight, X, ZoomIn, Maximize } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
 
@@ -37,6 +37,11 @@ const ProductDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
+  const [zoomModalOpen, setZoomModalOpen] = useState(false);
+  const [zoomedImageIndex, setZoomedImageIndex] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const maxZoomLevel = 3;
+  const minZoomLevel = 0.5;
 
   // State for related products
   const [relatedProducts, setRelatedProducts] = useState<ProductWithSlug[]>([]);
@@ -420,6 +425,94 @@ const ProductDetailPage: React.FC = () => {
         `}
       </style>
 
+      {/* Image Zoom Modal */}
+      {zoomModalOpen && product && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 md:p-8"
+          onClick={() => {
+            setZoomModalOpen(false);
+            setZoomLevel(1); // Reset zoom when closing modal
+          }}
+        >
+          <div className="relative w-full max-w-6xl max-h-[90vh] overflow-hidden">
+            <button 
+              onClick={() => {
+                setZoomModalOpen(false);
+                setZoomLevel(1); // Reset zoom when closing modal
+              }}
+              className="absolute top-2 right-2 text-white hover:text-luxury-gold z-10 bg-black/40 rounded-full p-1"
+              aria-label="Close zoom view"
+            >
+              <X size={24} />
+            </button>
+            
+            {/* Zoom controls */}
+            <div className="absolute top-2 left-2 z-10 flex space-x-2">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (zoomLevel > minZoomLevel) {
+                    setZoomLevel(prev => Math.max(prev - 0.5, minZoomLevel));
+                  }
+                }}
+                disabled={zoomLevel <= minZoomLevel}
+                className={`bg-luxury-gold/90 hover:bg-luxury-gold text-luxury-black p-1.5 rounded-full shadow-md
+                  ${zoomLevel <= minZoomLevel ? 'opacity-50 cursor-not-allowed' : ''}`}
+                aria-label="Zoom out"
+              >
+                <Minus size={18} />
+              </button>
+              
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (zoomLevel < maxZoomLevel) {
+                    setZoomLevel(prev => Math.min(prev + 0.5, maxZoomLevel));
+                  }
+                }}
+                disabled={zoomLevel >= maxZoomLevel}
+                className={`bg-luxury-gold/90 hover:bg-luxury-gold text-luxury-black p-1.5 rounded-full shadow-md
+                  ${zoomLevel >= maxZoomLevel ? 'opacity-50 cursor-not-allowed' : ''}`}
+                aria-label="Zoom in"
+              >
+                <Plus size={18} />
+              </button>
+              
+              <span className="bg-luxury-gold/60 text-luxury-black px-2 py-1 rounded text-xs font-medium">
+                {Math.round(zoomLevel * 100)}%
+              </span>
+            </div>
+            
+            <Swiper
+              modules={[Navigation, Pagination]}
+              navigation
+              pagination={{ clickable: true }}
+              initialSlide={zoomedImageIndex}
+              className="h-full zoom-swiper"
+              onSlideChange={() => setZoomLevel(1)} // Reset zoom when changing slides
+            >
+              {product.images.map((image, index) => (
+                <SwiperSlide key={`zoom-${index}`}>
+                  <div 
+                    className="flex items-center justify-center h-full overflow-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="transform transition-all duration-200 ease-out">
+                      <img 
+                        src={image} 
+                        alt={`${product.name} - Image ${index + 1}`}
+                        className="max-w-full max-h-[80vh] object-contain transition-transform duration-200"
+                        style={{ transform: `scale(${zoomLevel})` }}
+                      />
+                    </div>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        </div>
+      )}
+
       <section className="py-12">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -437,12 +530,23 @@ const ProductDetailPage: React.FC = () => {
                 >
                   {product.images.map((image, index) => (
                     <SwiperSlide key={index}>
-                      <div className="aspect-square bg-gray-50">
+                      <div className="aspect-square bg-gray-50 relative group">
                         <img 
                           src={image} 
                           alt={`${product.name} - Image ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setZoomedImageIndex(index);
+                            setZoomModalOpen(true);
+                          }}
+                          className="absolute top-3 right-3 bg-luxury-gold/90 hover:bg-luxury-gold text-luxury-black p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+                          aria-label="Zoom image"
+                        >
+                          <ZoomIn size={18} />
+                        </button>
                       </div>
                     </SwiperSlide>
                   ))}
