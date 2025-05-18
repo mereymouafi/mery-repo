@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { motion, useDragControls, useMotionValue } from 'framer-motion';
-import { Minus, Plus, Share, Heart, Check, ShoppingBag, ChevronRight, X, ZoomIn, Maximize, Move } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Minus, Plus, Share, Heart, Check, ShoppingBag, ChevronRight, X, ZoomIn, Maximize } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
 
@@ -40,16 +40,9 @@ const ProductDetailPage: React.FC = () => {
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [zoomedImageIndex, setZoomedImageIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const maxZoomLevel = 3;
+  const maxZoomLevel = 2.5;
   const minZoomLevel = 0.5;
   const zoomStep = 0.25;
-  
-  // State for image panning
-  const [isPanning, setIsPanning] = useState(false);
-  const dragControls = useDragControls();
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const zoomedImageRef = useRef<HTMLDivElement>(null);
 
   // State for related products
   const [relatedProducts, setRelatedProducts] = useState<ProductWithSlug[]>([]);
@@ -433,17 +426,13 @@ const ProductDetailPage: React.FC = () => {
         `}
       </style>
 
-      {/* Advanced 360° Zoom & Pan Modal */}
+      {/* Louis Vuitton Style Image Zoom Modal */}
       {zoomModalOpen && product && (
         <div 
           className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center"
-          onClick={(e) => {
-            if (!isPanning) {
-              setZoomModalOpen(false);
-              setZoomLevel(1); // Reset zoom when closing modal
-              x.set(0); // Reset position
-              y.set(0); // Reset position
-            }
+          onClick={() => {
+            setZoomModalOpen(false);
+            setZoomLevel(1); // Reset zoom when closing modal
           }}
         >
           {/* Top Bar with controls */}
@@ -456,11 +445,6 @@ const ProductDetailPage: React.FC = () => {
                     e.stopPropagation();
                     if (zoomLevel > minZoomLevel) {
                       setZoomLevel(prev => Math.max(prev - zoomStep, minZoomLevel));
-                      // When zooming out, gradually reset position to center
-                      if (zoomLevel <= 1.5) {
-                        x.set(0);
-                        y.set(0);
-                      }
                     }
                   }}
                   disabled={zoomLevel <= minZoomLevel}
@@ -491,27 +475,15 @@ const ProductDetailPage: React.FC = () => {
                 </button>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <div className="text-sm text-gray-500">
-                  {`Image ${zoomedImageIndex + 1} of ${product.images.length}`}
-                </div>
-                
-                {zoomLevel > 1 && (
-                  <div className="flex items-center px-2 py-1 bg-luxury-gold/10 text-luxury-black rounded text-xs">
-                    <Move size={14} className="mr-1" />
-                    <span>Drag to explore</span>
-                  </div>
-                )}
+              <div className="text-sm text-gray-500">
+                {`Image ${zoomedImageIndex + 1} of ${product.images.length}`}
               </div>
             </div>
 
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={() => {
                 setZoomModalOpen(false);
                 setZoomLevel(1); // Reset zoom when closing modal
-                x.set(0); // Reset position
-                y.set(0); // Reset position
               }}
               className="text-luxury-black hover:text-luxury-gold transition-colors p-2"
               aria-label="Close zoom view"
@@ -521,27 +493,7 @@ const ProductDetailPage: React.FC = () => {
           </div>
           
           {/* Main image container */}
-          <div 
-            className="w-full h-full flex items-center justify-center overflow-hidden pt-16"
-            onMouseDown={(e) => {
-              if (zoomLevel > 1) {
-                setIsPanning(true);
-                dragControls.start(e);
-              }
-            }}
-            onMouseUp={() => setIsPanning(false)}
-            onMouseLeave={() => setIsPanning(false)}
-            onTouchStart={() => {
-              if (zoomLevel > 1) {
-                setIsPanning(true);
-              }
-            }}
-            onTouchEnd={() => setIsPanning(false)}
-            style={{ 
-              cursor: zoomLevel > 1 ? isPanning ? 'grabbing' : 'grab' : 'zoom-in' 
-            }}
-            ref={zoomedImageRef}
-          >
+          <div className="w-full h-full flex items-center justify-center overflow-auto pt-16">
             <Swiper
               modules={[Navigation, Pagination]}
               navigation={{
@@ -554,56 +506,37 @@ const ProductDetailPage: React.FC = () => {
               onSlideChange={(swiper) => {
                 setZoomedImageIndex(swiper.activeIndex);
                 setZoomLevel(1); // Reset zoom when changing slides
-                x.set(0); // Reset position
-                y.set(0); // Reset position
               }}
-              allowTouchMove={zoomLevel <= 1} // Disable swiper touch when zoomed for panning
             >
               {product.images.map((image, index) => (
                 <SwiperSlide key={`zoom-${index}`}>
                   <div 
-                    className="flex items-center justify-center h-full px-8 py-4"
+                    className="flex items-center justify-center h-full px-8 py-4 cursor-zoom-in"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isPanning) {
-                        // Toggle zoom levels on click
-                        if (zoomLevel > 1.5) {
-                          setZoomLevel(1);
-                          x.set(0); // Reset position
-                          y.set(0); // Reset position
-                        } else if (zoomLevel > 1) {
-                          setZoomLevel(maxZoomLevel);
-                        } else {
-                          setZoomLevel(1.5);
-                        }
+                      // Toggle zoom levels on click
+                      if (zoomLevel > 1.5) {
+                        setZoomLevel(1);
+                      } else if (zoomLevel > 1) {
+                        setZoomLevel(maxZoomLevel);
+                      } else {
+                        setZoomLevel(1.5);
                       }
                     }}
                   >
-                    {/* Image with smooth zoom transition and 360° pan capability */}
-                    <motion.div
-                      className="transition-all duration-300 ease-out"
-                      style={{ 
-                        x,
-                        y,
-                        scale: zoomLevel
-                      }}
-                      drag={zoomLevel > 1}
-                      dragControls={dragControls}
-                      dragConstraints={zoomedImageRef}
-                      dragElastic={0.1}
-                      dragMomentum={false}
-                      dragTransition={{ power: 0.1, timeConstant: 200 }}
-                      whileDrag={{ cursor: 'grabbing' }}
-                      onDragStart={() => setIsPanning(true)}
-                      onDragEnd={() => setIsPanning(false)}
-                    >
+                    {/* Image with smooth zoom transition */}
+                    <div className="transform transition-all duration-300 ease-out">
                       <img 
                         src={image} 
                         alt={`${product.name} - Image ${index + 1}`}
-                        className="max-w-full max-h-[80vh] object-contain pointer-events-none"
-                        draggable="false"
+                        className="max-w-full max-h-[80vh] object-contain"
+                        style={{ 
+                          transform: `scale(${zoomLevel})`,
+                          transition: 'transform 0.3s ease-out' 
+                        }}
+                        onDoubleClick={(e) => e.stopPropagation()}
                       />
-                    </motion.div>
+                    </div>
                   </div>
                 </SwiperSlide>
               ))}
@@ -652,8 +585,6 @@ const ProductDetailPage: React.FC = () => {
                             e.stopPropagation();
                             setZoomedImageIndex(index);
                             setZoomModalOpen(true);
-                            x.set(0); // Reset position when opening modal
-                            y.set(0); // Reset position when opening modal
                           }}
                           className="absolute top-3 right-3 bg-luxury-gold/90 hover:bg-luxury-gold text-luxury-black p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
                           aria-label="Zoom image"
@@ -863,7 +794,7 @@ const ProductDetailPage: React.FC = () => {
                   onClick={handleQuickBuy}
                   className="flex-1 py-3 px-6 bg-luxury-gold text-luxury-black hover:bg-luxury-gold/90 focus:outline-none transition-colors duration-300"
                 >
-                  Quick Buy
+                 Cash On Delivery 
                 </button>
               </div>
                 
@@ -958,9 +889,9 @@ const ProductDetailPage: React.FC = () => {
                   
                   {activeTab === 'shipping' && (
                     <div className="text-luxury-gray">
-                      <p>Free standard shipping on all orders over $300.</p>
+                      <p>Free standard shipping on all orders.</p>
                       <p className="mt-2">Delivery typically takes 3-5 business days depending on your location.</p>
-                      <p className="mt-2">Returns accepted within 14 days of delivery for unused items in original packaging.</p>
+                      <p className="mt-2">Returns accepted upon delivery for unused items in original packaging.</p>
                     </div>
                   )}
                   
