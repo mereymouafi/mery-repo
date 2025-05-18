@@ -104,13 +104,13 @@ const CartPage: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                         {/* Product */}
                         <div className="col-span-6 flex items-center space-x-4">
-                          <Link to={`/product/${item.productId}`} className="w-24 h-24 flex-shrink-0">
+                          <div className="w-24 h-24 flex-shrink-0">
                             <img 
                               src={item.image} 
                               alt={item.name} 
                               className="w-full h-full object-cover"
                             />
-                          </Link>
+                          </div>
                           <div>
                             {/* Brand display */}
                             {item.brand && (
@@ -118,12 +118,9 @@ const CartPage: React.FC = () => {
                                 {getBrandName(item.brand)}
                               </div>
                             )}
-                            <Link 
-                              to={`/product/${item.productId}`} 
-                              className="text-luxury-black hover:text-luxury-gold transition-colors font-medium"
-                            >
+                            <span className="text-luxury-black font-medium">
                               {item.name}
-                            </Link>
+                            </span>
                             
                             {/* Display size for footwear */}
                             {getProductCategory(item.productId) === 'footwear' && item.size && (
