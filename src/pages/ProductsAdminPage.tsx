@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
-import { brands, products, categories } from '../data/products';
+import { brands as staticBrands, products, categories } from '../data/products';
 
 interface Product {
   id: string;
@@ -35,13 +35,17 @@ const ProductsAdminPage: React.FC = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const categoryIdFromUrl = searchParams.get('categoryId');
+  const brandIdFromUrl = searchParams.get('brandId');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
+  const [dbBrands, setDbBrands] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(categoryIdFromUrl);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(brandIdFromUrl);
+  const [activeBrandName, setActiveBrandName] = useState<string | null>(null);
   
   // Form state
   const [name, setName] = useState('');
@@ -64,6 +68,7 @@ const ProductsAdminPage: React.FC = () => {
 
   useEffect(() => {
     fetchCategories();
+    fetchBrands();
     fetchProducts();
     
     // Set up real-time subscription
@@ -82,19 +87,36 @@ const ProductsAdminPage: React.FC = () => {
     };
   }, []);
 
-  // Update selectedCategoryId when URL parameter changes
+  // Update selected IDs when URL parameters change
   useEffect(() => {
     setSelectedCategoryId(categoryIdFromUrl);
   }, [categoryIdFromUrl]);
-
-  // Filter products when selectedCategoryId changes
+  
   useEffect(() => {
-    if (selectedCategoryId) {
-      setFilteredProducts(dbProducts.filter(product => product.category_id === selectedCategoryId));
+    setSelectedBrandId(brandIdFromUrl);
+    if (brandIdFromUrl) {
+      fetchBrandName(brandIdFromUrl);
     } else {
-      setFilteredProducts(dbProducts);
+      setActiveBrandName(null);
     }
-  }, [selectedCategoryId, dbProducts]);
+  }, [brandIdFromUrl]);
+
+  // Filter products when filter criteria changes
+  useEffect(() => {
+    let filtered = [...dbProducts];
+    
+    // Filter by category if selected
+    if (selectedCategoryId) {
+      filtered = filtered.filter(product => product.category_id === selectedCategoryId);
+    }
+    
+    // Filter by brand if selected
+    if (selectedBrandId) {
+      filtered = filtered.filter(product => product.brand === selectedBrandId);
+    }
+    
+    setFilteredProducts(filtered);
+  }, [selectedCategoryId, selectedBrandId, dbProducts]);
 
   const fetchCategories = async () => {
     try {
@@ -113,6 +135,44 @@ const ProductsAdminPage: React.FC = () => {
     }
   };
 
+  const fetchBrands = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('brands')
+        .select('id, name, slug')
+        .order('name', { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setDbBrands(data || []);
+    } catch (err) {
+      console.error('Error fetching brands:', err);
+    }
+  };
+  
+  const fetchBrandName = async (brandId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('brands')
+        .select('name')
+        .eq('id', brandId)
+        .single();
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setActiveBrandName(data.name);
+      }
+    } catch (err) {
+      console.error('Error fetching brand name:', err);
+      setActiveBrandName(null);
+    }
+  };
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -128,12 +188,7 @@ const ProductsAdminPage: React.FC = () => {
       const productsData = data || [];
       setDbProducts(productsData);
       
-      // Apply category filter if one is selected
-      if (selectedCategoryId) {
-        setFilteredProducts(productsData.filter(product => product.category_id === selectedCategoryId));
-      } else {
-        setFilteredProducts(productsData);
-      }
+      // Filtering will be handled by the useEffect
     } catch (err) {
       console.error('Error fetching products:', err);
       setError('Failed to fetch products');
@@ -371,10 +426,50 @@ const ProductsAdminPage: React.FC = () => {
   };
 
   return (
-    <div className="container px-4 py-6 mx-auto">
+    <div className="admin-page products-admin">
       <Helmet>
-        <title>Product Management | Maroc Luxe Admin</title>
+        <title>Manage Products | MarocLuxe Admin</title>
       </Helmet>
+      
+      <div className="page-header mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Manage Products</h1>
+        <p className="text-gray-600 mt-1">Add, edit or remove products from your store</p>
+        
+        {/* Active filters section */}
+        {(selectedCategoryId || selectedBrandId) && (
+          <div className="mt-3 flex items-center flex-wrap gap-2">
+            <span className="text-sm text-gray-600">Active filters:</span>
+            
+            {selectedCategoryId && (
+              <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full flex items-center">
+                Category: {dbCategories.find(c => c.id === selectedCategoryId)?.name || 'Unknown'}
+                <Link to="/admin/products" className="ml-1 text-indigo-600 hover:text-indigo-800">
+                  <span className="sr-only">Remove filter</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </Link>
+              </span>
+            )}
+            
+            {selectedBrandId && (
+              <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full flex items-center">
+                Brand: {activeBrandName || 'Unknown'}
+                <Link to="/admin/products" className="ml-1 text-indigo-600 hover:text-indigo-800">
+                  <span className="sr-only">Remove filter</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </Link>
+              </span>
+            )}
+            
+            <Link to="/admin/products" className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+              Clear all filters
+            </Link>
+          </div>
+        )}
+      </div>
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Product Management</h1>
@@ -483,7 +578,7 @@ const ProductsAdminPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Select a brand</option>
-                  {brands.map((brand) => (
+                  {dbBrands.map((brand) => (
                     <option key={brand.id} value={brand.id}>
                       {brand.name}
                     </option>
