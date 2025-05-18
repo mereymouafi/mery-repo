@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 
 import { brands, products, categories } from '../data/products';
 
@@ -66,6 +67,10 @@ const ProductsAdminPage: React.FC = () => {
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
   const [editProductId, setEditProductId] = useState<string | null>(null);
+  
+  // Confirmation modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -260,24 +265,27 @@ const ProductsAdminPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
-      return;
-    }
+  const openDeleteModal = (id: string) => {
+    setProductToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
 
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+    
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', id);
+        .eq('id', productToDelete);
 
       if (error) {
         throw error;
       }
 
       // Filter out the deleted product from both product states
-      setDbProducts(dbProducts.filter(product => product.id !== id));
-      setFilteredProducts(filteredProducts.filter(product => product.id !== id));
+      setDbProducts(dbProducts.filter(product => product.id !== productToDelete));
+      setFilteredProducts(filteredProducts.filter(product => product.id !== productToDelete));
       
       // Show success message
       setSuccessMessage('Product deleted successfully');
@@ -287,6 +295,10 @@ const ProductsAdminPage: React.FC = () => {
     } catch (err: any) {
       console.error('Error deleting product:', err);
       setError(err.message || 'Failed to delete product');
+    } finally {
+      // Close the modal
+      setIsDeleteModalOpen(false);
+      setProductToDelete(null);
     }
   };
 
@@ -812,7 +824,7 @@ const ProductsAdminPage: React.FC = () => {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(product.id)}
+                          onClick={() => openDeleteModal(product.id)}
                           className="text-red-600 hover:text-red-900 ml-2"
                         >
                           Delete
@@ -827,6 +839,17 @@ const ProductsAdminPage: React.FC = () => {
           )}
         </div>
       </div>
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setProductToDelete(null);
+        }}
+      />
     </div>
   );
 };
