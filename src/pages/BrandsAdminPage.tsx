@@ -216,7 +216,7 @@ const BrandsAdminPage: React.FC = () => {
       const { data: products, error: productsError } = await supabase
         .from('products')
         .select('id')
-        .eq('brand_id', id)
+        .eq('brand', id)
         .limit(1);
         
       if (productsError) {
