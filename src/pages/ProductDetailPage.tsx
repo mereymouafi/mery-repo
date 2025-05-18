@@ -102,29 +102,57 @@ const ProductDetailPage: React.FC = () => {
           } else if (allProducts && allProducts.length > 0) {
             console.log(`Found ${allProducts.length} products, searching for match...`);
             
-            // Extract search terms from the slug
-            const searchTerms = slug.split('-');
-            console.log('Search terms:', searchTerms);
-            
-            // Match against product names
-            const matches = allProducts.filter(product => {
-              if (!product.name) return false;
-              const productName = product.name.toLowerCase();
+            // First try: exact slug match
+            const exactSlugMatch = allProducts.find(product => {
+              // Check for an exact match on the slug field first
+              if (product.slug && product.slug.toLowerCase() === slug.toLowerCase()) {
+                return true;
+              }
               
-              // Check if any search term is in the product name
-              return searchTerms.some(term => {
-                // Skip very short terms (like 'a' or 'de')
-                if (term.length < 3) return false;
-                return productName.includes(term.toLowerCase());
-              });
+              // Also check if the slug we would generate from the name matches
+              const generatedSlug = generateSlug(product.name);
+              return generatedSlug === slug;
             });
             
-            console.log(`Found ${matches.length} potential matches`);
-            
-            if (matches.length > 0) {
-              // Use the first match (in the future, you can improve the matching algorithm)
-              productData = matches[0];
-              console.log('Best match:', productData.name);
+            if (exactSlugMatch) {
+              console.log('Found exact slug match:', exactSlugMatch.name);
+              productData = exactSlugMatch;
+            } else {
+              // If exact match fails, score products by relevance to the slug
+              const scoredMatches = allProducts
+                .map(product => {
+                  if (!product.name) return { product, score: 0 };
+                  
+                  const productName = product.name.toLowerCase();
+                  const searchTerms = slug.split('-').filter(term => term.length >= 3);
+                  
+                  // Calculate a score based on how many terms match and their position in the name
+                  let score = 0;
+                  searchTerms.forEach(term => {
+                    if (productName.includes(term.toLowerCase())) {
+                      // Terms appearing earlier in the name get higher scores
+                      const position = productName.indexOf(term.toLowerCase());
+                      score += 10 - (position / productName.length) * 5;
+                    }
+                  });
+                  
+                  // Boost score for products with matching category terms in the slug
+                  if (product.category && typeof product.category === 'string' && 
+                      slug.includes(product.category.toLowerCase())) {
+                    score += 5;
+                  }
+                  
+                  return { product, score };
+                })
+                .filter(item => item.score > 0) // Only keep products with some match
+                .sort((a, b) => b.score - a.score); // Sort by descending score
+              
+              console.log('Scored matches:', scoredMatches.map(m => ({ name: m.product.name, score: m.score })));
+              
+              if (scoredMatches.length > 0) {
+                productData = scoredMatches[0].product;
+                console.log('Best match by score:', productData.name, 'with score', scoredMatches[0].score);
+              }
             }
           }
         }
@@ -248,7 +276,7 @@ const ProductDetailPage: React.FC = () => {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [slug, id, navigate]);
 
   // Get brand name if available
   const brandName = product?.brand || '';
@@ -774,7 +802,14 @@ const ProductDetailPage: React.FC = () => {
                     viewport={{ once: true }}
                     className="group product-card-hover"
                   >
-                    <Link to={`/product/${relatedProduct.slug}`} className="block">
+                    <a 
+                      href="javascript:void(0)"
+                      className="block cursor-pointer"
+                      onClick={() => {
+                        // Force navigation with window.location for a complete refresh
+                        window.location.href = `/product/${relatedProduct.slug}`;
+                      }}
+                    >
                       <div className="relative aspect-square overflow-hidden mb-4">
                         <img 
                           src={Array.isArray(relatedProduct.images) && relatedProduct.images.length > 0 
@@ -789,7 +824,7 @@ const ProductDetailPage: React.FC = () => {
                       </div>
                       <h3 className="font-serif text-luxury-black text-lg mb-1 truncate">{relatedProduct.name}</h3>
                       <p className="text-luxury-gold font-medium">{relatedProduct.price.toLocaleString()} MAD</p>
-                    </Link>
+                    </a>
                   </motion.div>
                 ))
               )}
