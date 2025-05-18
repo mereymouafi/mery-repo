@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { importExistingCategories } from '../lib/importExistingCategories';
 
 interface Category {
   id: string;
@@ -24,7 +23,6 @@ const CategoriesAdminPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -134,32 +132,7 @@ const CategoriesAdminPage: React.FC = () => {
     }
   };
 
-  // Import all existing categories from products.ts
-  const handleImportCategories = async () => {
-    if (!window.confirm('This will import all existing categories from the website. Continue?')) {
-      return;
-    }
 
-    setImporting(true);
-    setError(null);
-    setSuccessMessage('');
-
-    try {
-      const result = await importExistingCategories();
-      
-      if (result.success) {
-        setSuccessMessage('Existing categories imported successfully!');
-        fetchCategories(); // Refresh the categories list
-      } else {
-        setError(`Failed to import categories: ${result.error}`);
-      }
-    } catch (err: any) {
-      console.error('Error importing categories:', err);
-      setError(`Error importing categories: ${err.message || err}`);
-    } finally {
-      setImporting(false);
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this category and ALL of its associated products?')) {
@@ -224,15 +197,8 @@ const CategoriesAdminPage: React.FC = () => {
         <title>Category Management | Maroc Luxe Admin</title>
       </Helmet>
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">Category Management</h1>
-        <button
-          onClick={handleImportCategories}
-          disabled={importing}
-          className="bg-luxury-gold hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50"
-        >
-          {importing ? 'Importing...' : 'Import Existing Categories'}
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
