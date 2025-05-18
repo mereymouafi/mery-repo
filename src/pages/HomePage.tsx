@@ -310,16 +310,16 @@ const HomePage: React.FC = () => {
                       alt={category.name} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
-                      <h3 className="text-white font-serif text-xl">{category.name}</h3>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6">
+                      <h3 className="text-white font-serif text-xl mb-2">{category.name}</h3>
+                      <div className="flex justify-between items-center">
+                        <span className="text-white opacity-80 hover:text-luxury-gold transition-colors group-hover:opacity-100">
+                          Shop Now
+                        </span>
+                        <ArrowRight className="text-luxury-gold" size={16} />
+                      </div>
                     </div>
                   </Link>
-                  <div className="absolute bottom-0 left-0 w-full p-6 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link to={`/shop/${category.slug}`} className="text-white hover:text-luxury-gold transition-colors">
-                      Shop Now
-                    </Link>
-                    <ArrowRight className="text-luxury-gold" size={20} />
-                  </div>
                 </motion.div>
               ))}
             </div>

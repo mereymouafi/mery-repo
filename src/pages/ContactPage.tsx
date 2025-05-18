@@ -84,10 +84,6 @@ const ContactPage: React.FC = () => {
               </p>
               
               <div className="space-y-6">
-                <div className="flex items-start">
-                  <MapPin size={20} className="text-luxury-gold mr-4 mt-1" />
-              
-                </div>
                 
                 <div className="flex items-start">
                   <Phone size={20} className="text-luxury-gold mr-4 mt-1" />
