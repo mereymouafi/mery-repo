@@ -4,8 +4,6 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-import { brands, products, categories } from '../data/products';
-
 interface Product {
   id: string;
   name: string;
@@ -44,7 +42,6 @@ const ProductsAdminPage: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
   const [dbBrands, setDbBrands] = useState<{id: string, name: string}[]>([]);
-  const [importing, setImporting] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(categoryIdFromUrl);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(brandIdFromUrl);
   
@@ -395,110 +392,7 @@ const ProductsAdminPage: React.FC = () => {
     return brand ? brand.name : 'Unknown';
   };
   
-  const importAllProducts = async () => {
-    setImporting(true);
-    setError(null);
-    setSuccessMessage('');
-    
-    try {
-      // First, ensure all categories exist in the database
-      const categoryMap: Record<string, string> = {};
-      
-      // If we have existing categories, populate the map
-      if (dbCategories.length > 0) {
-        dbCategories.forEach(cat => {
-          categoryMap[cat.slug] = cat.id;
-        });
-      } else {
-        // If no categories exist, we need to create them first
-        console.log('No categories found, creating categories...');
-        
-        // Filter out the 'all' category
-        const categoriesToInsert = categories
-          .filter(cat => cat.id !== 'all')
-          .map(cat => ({
-            slug: cat.id,
-            name: cat.name
-          }));
-        
-        const { data: insertedCategories, error: insertError } = await supabase
-          .from('categories')
-          .insert(categoriesToInsert)
-          .select();
-        
-        if (insertError) {
-          throw new Error(`Error creating categories: ${insertError.message}`);
-        }
-        
-        if (insertedCategories) {
-          insertedCategories.forEach(cat => {
-            categoryMap[cat.slug] = cat.id;
-          });
-          // Refresh categories list
-          fetchCategories();
-        }
-      }
-      
-      let addedCount = 0;
-      let skippedCount = 0;
-      let errorCount = 0;
-      
-      // Import each product from the products.ts file
-      for (const product of products) {
-        // Check if product already exists by name
-        const { data: existingProduct } = await supabase
-          .from('products')
-          .select('id, name')
-          .eq('name', product.name)
-          .maybeSingle();
-        
-        if (existingProduct) {
-          skippedCount++;
-          continue;
-        }
-        
-        // Convert the product to the database format
-        const productToInsert = {
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category_id: categoryMap[product.category], // Map the category slug to ID
-          brand: product.brand || null,
-          image: product.image,
-          images: product.images,
-          is_new: product.isNew || false,
-          is_best_seller: product.isBestSeller || false,
-          color: product.color,
-          dimensions: product.dimensions,
-          material: product.material,
-          made_in: product.madeIn,
-          sizes: product.sizes || null,
-        };
-        
-        // Insert the product
-        const { error: insertError } = await supabase
-          .from('products')
-          .insert([productToInsert]);
-        
-        if (insertError) {
-          errorCount++;
-          console.error(`Error adding product "${product.name}":`, insertError);
-        } else {
-          addedCount++;
-        }
-      }
-      
-      setSuccessMessage(`Import completed: ${addedCount} products added, ${skippedCount} skipped, ${errorCount} errors`);
-      
-      // Refresh the products list
-      fetchProducts();
-    } catch (err: any) {
-      console.error('Import failed:', err);
-      setError(`Import failed: ${err.message}`);
-    } finally {
-      setImporting(false);
-    }
-  };
+
 
   return (
     <div className="container px-4 py-6 mx-auto">
@@ -506,15 +400,8 @@ const ProductsAdminPage: React.FC = () => {
         <title>Product Management | Maroc Luxe Admin</title>
       </Helmet>
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">Product Management</h1>
-        <button
-          onClick={importAllProducts}
-          disabled={importing}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50"
-        >
-          {importing ? 'Importing...' : 'Import All Products from products.ts'}
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -613,7 +500,7 @@ const ProductsAdminPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Select a brand</option>
-                  {brands.map((brand) => (
+                  {dbBrands.map((brand) => (
                     <option key={brand.id} value={brand.id}>
                       {brand.name}
                     </option>
