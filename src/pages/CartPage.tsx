@@ -100,7 +100,7 @@ const CartPage: React.FC = () => {
                   </div>
 
                   {cartItems.map(item => (
-                    <div key={item.id} className="py-6 border-b border-gray-200 last:border-b-0">
+                    <div key={item.id} className="py-6 border-b border-gray-200 last:border-b-0 hover:bg-luxury-cream/10 transition-colors">
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                         {/* Product */}
                         <div className="col-span-6 flex items-center space-x-4">
@@ -142,15 +142,51 @@ const CartPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Price */}
-                        <div className="md:col-span-2 flex justify-between md:justify-center">
-                          <span className="md:hidden">Price:</span>
+                        {/* Mobile layout for price, quantity and total */}
+                        <div className="md:hidden space-y-4 mt-3 w-full border-t border-gray-100 pt-4">
+                          {/* Price row */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-luxury-gray font-medium">Price:</span>
+                            <span className="text-luxury-black font-semibold">{item.price.toLocaleString()} MAD</span>
+                          </div>
+                          
+                          {/* Quantity row */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-luxury-gray font-medium">Quantity:</span>
+                            <div className="inline-flex items-center shadow-sm">
+                              <button 
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                className="px-3 py-2 text-luxury-black border border-luxury-cream border-r-0 bg-white hover:bg-luxury-cream transition-colors"
+                                disabled={item.quantity <= 1}
+                              >
+                                -
+                              </button>
+                              <span className="w-10 text-center border-y border-luxury-cream bg-white py-2">{item.quantity}</span>
+                              <button 
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="px-3 py-2 text-luxury-black border border-luxury-cream border-l-0 bg-white hover:bg-luxury-cream transition-colors"
+                                disabled={item.quantity >= 10}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Total row */}
+                          <div className="flex justify-between items-center border-t border-gray-200 pt-4">
+                            <span className="text-luxury-gray font-medium">Total:</span>
+                            <span className="text-luxury-gold font-semibold text-lg">
+                              {(item.price * item.quantity).toLocaleString()} MAD
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Desktop layout for price, quantity and total */}
+                        <div className="hidden md:block md:col-span-2 flex justify-center">
                           <span className="text-luxury-black">{item.price.toLocaleString()} MAD</span>
                         </div>
 
-                        {/* Quantity */}
-                        <div className="md:col-span-2 flex justify-between md:justify-center items-center">
-                          <span className="md:hidden">Quantity:</span>
+                        <div className="hidden md:block md:col-span-2 flex justify-center items-center">
                           <div className="inline-flex items-center">
                             <button 
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
@@ -170,9 +206,7 @@ const CartPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Total */}
-                        <div className="md:col-span-2 flex justify-between md:justify-end">
-                          <span className="md:hidden">Total:</span>
+                        <div className="hidden md:block md:col-span-2 flex justify-end">
                           <span className="text-luxury-black font-medium">
                             {(item.price * item.quantity).toLocaleString()} MAD
                           </span>
