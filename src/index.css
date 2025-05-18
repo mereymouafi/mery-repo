@@ -20,11 +20,7 @@ p, li, a {
 
 .container {
   @apply mx-auto px-4 md:px-6 lg:px-8;
-<<<<<<< HEAD
-  max-width: 1800px;
-=======
-  max-width: 1800px;
->>>>>>> c4faf8c12c52bf00128d8c6cabf0520fc8ea9514
+  max-width: 1700px;
 }
 
 .btn {
