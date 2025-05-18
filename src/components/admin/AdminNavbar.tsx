@@ -28,77 +28,94 @@ const AdminNavbar: React.FC = () => {
   };
   
   return (
-    <nav className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center mb-6 shadow-lg">
-      <div className="flex items-center space-x-4">
-        <Link to="/admin/orders" className="font-bold text-xl flex items-center hover:no-underline hover:opacity-100">
-          <span className="text-luxury-gold">Maroc</span>
-          <span className="text-white ml-1">Luxe</span>
-          <span className="ml-3 text-gray-400 font-normal">Admin</span>
-        </Link>
-        <div className="hidden md:flex space-x-4 ml-8">
-          <Link 
-            to="/admin/orders" 
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive('/admin/orders') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-          >
-            Orders
+    <>
+      {/* Gold accent line at the very top */}
+      <div className="h-1 w-full bg-gradient-to-r from-amber-300 via-amber-500 to-amber-300"></div>
+      
+      <nav className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-6 py-4 flex justify-between items-center mb-6 shadow-xl relative">
+        {/* Decorative gold corner accents */}
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-amber-400 opacity-50"></div>
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-amber-400 opacity-50"></div>
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-amber-400 opacity-50"></div>
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-amber-400 opacity-50"></div>
+        
+        <div className="flex items-center space-x-4">
+          <Link to="/admin/orders" className="font-serif text-xl flex items-center hover:no-underline hover:opacity-100 group relative">
+            <span className="bg-gradient-to-r from-amber-400 to-amber-500 bg-clip-text text-transparent font-bold">Maroc</span>
+            <span className="text-white ml-1 font-bold">Luxe</span>
+            <span className="ml-3 text-amber-200 font-light tracking-wider">Admin</span>
+            
+            {/* Subtle underline animation */}
+            <span className="absolute -bottom-1 left-0 w-0 h-px bg-gradient-to-r from-amber-400 to-amber-300 group-hover:w-full transition-all duration-300"></span>
           </Link>
-          <Link 
-            to="/admin/categories" 
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive('/admin/categories') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-          >
-            <TagIcon className="h-4 w-4 inline mr-1" />
-            Categories
-          </Link>
-          <Link 
-            to="/admin/products" 
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive('/admin/products') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-          >
-            <ArchiveBoxIcon className="h-4 w-4 inline mr-1" />
-            Products
-          </Link>
-          <Link 
-            to="/admin/brands" 
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive('/admin/brands') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-          >
-            <BuildingStorefrontIcon className="h-4 w-4 inline mr-1" />
-            Brands
-          </Link>
-        </div>
-      </div>
-      <div className="flex items-center">
-        <div className="flex items-center space-x-2 mr-6">
-          <Link to="/" className="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-            <HomeIcon className="h-5 w-5 inline mr-1" />
-            <span>Home</span>
-          </Link>
-          <Link to="/shop" className="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-            <ShoppingBagIcon className="h-5 w-5 inline mr-1" />
-            <span>Shop</span>
-          </Link>
-          <Link to="/about" className="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-            <UserIcon className="h-5 w-5 inline mr-1" />
-            <span>About</span>
-          </Link>
-          <Link to="/contact" className="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-            <PhoneIcon className="h-5 w-5 inline mr-1" />
-            <span>Contact</span>
-          </Link>
-        </div>
-        {user && (
-          <div className="flex items-center space-x-4 border-l border-gray-700 pl-4">
-            <span className="text-sm text-gray-300">{user.email}</span>
-            <button
-              onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center"
-              aria-label="Logout"
+          
+          <div className="hidden md:flex space-x-6 ml-12">
+            <Link 
+              to="/admin/orders" 
+              className={`px-3 py-2 rounded-sm text-sm font-medium transition-all duration-300 border-b-2 ${isActive('/admin/orders') ? 'border-amber-400 text-amber-200' : 'border-transparent text-gray-300 hover:text-amber-100 hover:border-amber-300'}`}
             >
-              <ArrowRightOnRectangleIcon className="h-4 w-4 mr-1" />
-              Logout
-            </button>
+              Orders
+            </Link>
+            <Link 
+              to="/admin/categories" 
+              className={`px-3 py-2 rounded-sm text-sm font-medium transition-all duration-300 border-b-2 ${isActive('/admin/categories') ? 'border-amber-400 text-amber-200' : 'border-transparent text-gray-300 hover:text-amber-100 hover:border-amber-300'}`}
+            >
+              <TagIcon className="h-4 w-4 inline mr-1" />
+              Categories
+            </Link>
+            <Link 
+              to="/admin/products" 
+              className={`px-3 py-2 rounded-sm text-sm font-medium transition-all duration-300 border-b-2 ${isActive('/admin/products') ? 'border-amber-400 text-amber-200' : 'border-transparent text-gray-300 hover:text-amber-100 hover:border-amber-300'}`}
+            >
+              <ArchiveBoxIcon className="h-4 w-4 inline mr-1" />
+              Products
+            </Link>
+            <Link 
+              to="/admin/brands" 
+              className={`px-3 py-2 rounded-sm text-sm font-medium transition-all duration-300 border-b-2 ${isActive('/admin/brands') ? 'border-amber-400 text-amber-200' : 'border-transparent text-gray-300 hover:text-amber-100 hover:border-amber-300'}`}
+            >
+              <BuildingStorefrontIcon className="h-4 w-4 inline mr-1" />
+              Brands
+            </Link>
           </div>
-        )}
-      </div>
-    </nav>
+        </div>
+        
+        <div className="flex items-center">
+          <div className="flex items-center space-x-4 mr-6">
+            <Link to="/" className="text-gray-300 hover:text-amber-200 px-3 py-2 text-sm font-medium transition-colors duration-200 border-b border-transparent hover:border-amber-400">
+              <HomeIcon className="h-5 w-5 inline mr-1" />
+              <span>Home</span>
+            </Link>
+            <Link to="/shop" className="text-gray-300 hover:text-amber-200 px-3 py-2 text-sm font-medium transition-colors duration-200 border-b border-transparent hover:border-amber-400">
+              <ShoppingBagIcon className="h-5 w-5 inline mr-1" />
+              <span>Shop</span>
+            </Link>
+            <Link to="/about" className="text-gray-300 hover:text-amber-200 px-3 py-2 text-sm font-medium transition-colors duration-200 border-b border-transparent hover:border-amber-400">
+              <UserIcon className="h-5 w-5 inline mr-1" />
+              <span>About</span>
+            </Link>
+            <Link to="/contact" className="text-gray-300 hover:text-amber-200 px-3 py-2 text-sm font-medium transition-colors duration-200 border-b border-transparent hover:border-amber-400">
+              <PhoneIcon className="h-5 w-5 inline mr-1" />
+              <span>Contact</span>
+            </Link>
+          </div>
+          
+          {user && (
+            <div className="flex items-center space-x-4 pl-4 border-l border-amber-900/30">
+              <span className="text-sm text-amber-100/70">{user.email}</span>
+              <button
+                onClick={handleLogout}
+                className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white px-4 py-2 rounded-sm text-sm font-medium transition-all duration-200 flex items-center shadow-md"
+                aria-label="Logout"
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4 mr-1" />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </nav>
+    </>
   );
 };
 
