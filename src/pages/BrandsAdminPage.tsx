@@ -3,7 +3,6 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Brand } from '../lib/brandService';
-import { FiEdit2, FiTrash2, FiSave, FiX } from 'react-icons/fi';
 
 const BrandsAdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -253,14 +252,13 @@ const BrandsAdminPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-page brands-admin">
+    <div className="container px-4 py-6 mx-auto">
       <Helmet>
-        <title>Manage Brands | MarocLuxe Admin</title>
+        <title>Brand Management | Maroc Luxe Admin</title>
       </Helmet>
       
-      <div className="page-header mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Manage Brands</h1>
-        <p className="text-gray-600 mt-1">Add, edit or remove brands from your store</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Brand Management</h1>
       </div>
 
       {/* Error/Success Messages */}
@@ -275,78 +273,65 @@ const BrandsAdminPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Brand Form */}
-        <div id="brand-form" className="bg-white shadow-md rounded-lg p-6 border-t-4 border-amber-400">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            {isEditing ? (
-              <>
-                <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Update Brand:</span> 
-                <span className="ml-2">{editingBrand?.name}</span>
-              </>
-            ) : (
-              <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Add New Brand</span>
-            )}
+        <div id="brand-form" className="bg-white shadow-md rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            {isEditing ? 'Update Brand' : 'Add New Brand'}
           </h2>
           
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="name" className="block text-gray-700 text-sm font-medium mb-2">
-                Brand Name *
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Brand Name*
               </label>
               <input
                 id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="Enter brand name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 required
               />
             </div>
             
             <div className="mb-4">
-              <label htmlFor="slug" className="block text-gray-700 text-sm font-medium mb-2">
-                Slug
+              <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-1">
+                Slug (auto-generated)
               </label>
               <input
                 id="slug"
                 type="text"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100"
-                placeholder="brand-slug"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50"
                 readOnly={!isEditing}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Auto-generated from name. Used in URLs.
-              </p>
             </div>
             
             <div className="mb-4">
-              <label htmlFor="description" className="block text-gray-700 text-sm font-medium mb-2">
-                Description (Optional)
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description
               </label>
               <textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="Enter brand description"
                 rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             
             <div className="mb-4">
-              <label htmlFor="image" className="block text-gray-700 text-sm font-medium mb-2">
-                Image URL (Optional)
+              <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
+                Image URL
               </label>
               <input
+                type="url"
                 id="image"
-                type="text"
                 value={image}
                 onChange={(e) => setImage(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="https://example.com/image.jpg"
               />
               {image && (
@@ -363,40 +348,30 @@ const BrandsAdminPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end">
               {isEditing && (
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out hover:bg-gray-100 flex items-center"
+                  className="mr-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
                 >
-                  <FiX className="mr-2" /> Cancel
+                  Cancel
                 </button>
               )}
               <button
                 type="submit"
                 disabled={submitting}
-                className={`${isEditing ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800'} text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50 flex items-center shadow-md`}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50"
               >
-                {submitting ? (
-                  isEditing ? 'Updating...' : 'Adding...'
-                ) : (
-                  <>
-                    {isEditing ? (
-                      <><FiSave className="mr-2" /> Update Brand</>
-                    ) : (
-                      'Add Brand'
-                    )}
-                  </>
-                )}
+                {submitting ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Brand' : 'Add Brand')}
               </button>
             </div>
           </form>
         </div>
 
         {/* Brands List */}
-        <div className="bg-white shadow-md rounded-lg p-6 border-t-4 border-amber-400">
-          <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Existing Brands</h2>
+        <div className="bg-white shadow-md rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Existing Brands</h2>
           
           {loading ? (
             <p className="text-gray-500">Loading brands...</p>
@@ -404,8 +379,8 @@ const BrandsAdminPage: React.FC = () => {
             <p className="text-gray-500">No brands found</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 border border-gray-100 shadow-sm">
-                <thead className="bg-gradient-to-r from-amber-50 to-amber-100">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Name
@@ -455,17 +430,15 @@ const BrandsAdminPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                         <button
                           onClick={() => handleEditClick(brand)}
-                          className="text-amber-600 hover:text-amber-900 inline-flex items-center transition-colors"
-                          title="Edit Brand"
+                          className="text-indigo-600 hover:text-indigo-900 mr-2"
                         >
-                          <FiEdit2 className="mr-1" /> Edit
+                          Edit
                         </button>
                         <button
                           onClick={() => handleDelete(brand.id)}
-                          className="text-red-600 hover:text-red-900 inline-flex items-center transition-colors"
-                          title="Delete Brand"
+                          className="text-red-600 hover:text-red-900 ml-2"
                         >
-                          <FiTrash2 className="mr-1" /> Delete
+                          Delete
                         </button>
                       </td>
                     </tr>
