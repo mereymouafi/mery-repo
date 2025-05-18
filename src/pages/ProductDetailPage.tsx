@@ -40,8 +40,9 @@ const ProductDetailPage: React.FC = () => {
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [zoomedImageIndex, setZoomedImageIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const maxZoomLevel = 3;
+  const maxZoomLevel = 2.5;
   const minZoomLevel = 0.5;
+  const zoomStep = 0.25;
 
   // State for related products
   const [relatedProducts, setRelatedProducts] = useState<ProductWithSlug[]>([]);
@@ -425,90 +426,133 @@ const ProductDetailPage: React.FC = () => {
         `}
       </style>
 
-      {/* Image Zoom Modal */}
+      {/* Louis Vuitton Style Image Zoom Modal */}
       {zoomModalOpen && product && (
         <div 
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 md:p-8"
+          className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center"
           onClick={() => {
             setZoomModalOpen(false);
             setZoomLevel(1); // Reset zoom when closing modal
           }}
         >
-          <div className="relative w-full max-w-6xl max-h-[90vh] overflow-hidden">
+          {/* Top Bar with controls */}
+          <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center py-4 px-6 border-b border-gray-200">
+            <div className="flex items-center space-x-4">
+              {/* Zoom controls with elegant styling */}
+              <div className="flex items-center space-x-1 bg-white rounded-md shadow-sm border border-gray-200 p-1">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (zoomLevel > minZoomLevel) {
+                      setZoomLevel(prev => Math.max(prev - zoomStep, minZoomLevel));
+                    }
+                  }}
+                  disabled={zoomLevel <= minZoomLevel}
+                  className={`w-8 h-8 flex items-center justify-center transition-colors
+                    ${zoomLevel <= minZoomLevel ? 'text-gray-300' : 'text-luxury-black hover:text-luxury-gold'}`}
+                  aria-label="Zoom out"
+                >
+                  <Minus size={18} strokeWidth={1.5} />
+                </button>
+                
+                <span className="px-2 py-1 text-sm border-l border-r border-gray-200 min-w-[60px] text-center">
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+                
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (zoomLevel < maxZoomLevel) {
+                      setZoomLevel(prev => Math.min(prev + zoomStep, maxZoomLevel));
+                    }
+                  }}
+                  disabled={zoomLevel >= maxZoomLevel}
+                  className={`w-8 h-8 flex items-center justify-center transition-colors
+                    ${zoomLevel >= maxZoomLevel ? 'text-gray-300' : 'text-luxury-black hover:text-luxury-gold'}`}
+                  aria-label="Zoom in"
+                >
+                  <Plus size={18} strokeWidth={1.5} />
+                </button>
+              </div>
+              
+              <div className="text-sm text-gray-500">
+                {`Image ${zoomedImageIndex + 1} of ${product.images.length}`}
+              </div>
+            </div>
+
             <button 
               onClick={() => {
                 setZoomModalOpen(false);
                 setZoomLevel(1); // Reset zoom when closing modal
               }}
-              className="absolute top-2 right-2 text-white hover:text-luxury-gold z-10 bg-black/40 rounded-full p-1"
+              className="text-luxury-black hover:text-luxury-gold transition-colors p-2"
               aria-label="Close zoom view"
             >
-              <X size={24} />
+              <X size={24} strokeWidth={1.5} />
             </button>
-            
-            {/* Zoom controls */}
-            <div className="absolute top-2 left-2 z-10 flex space-x-2">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (zoomLevel > minZoomLevel) {
-                    setZoomLevel(prev => Math.max(prev - 0.5, minZoomLevel));
-                  }
-                }}
-                disabled={zoomLevel <= minZoomLevel}
-                className={`bg-luxury-gold/90 hover:bg-luxury-gold text-luxury-black p-1.5 rounded-full shadow-md
-                  ${zoomLevel <= minZoomLevel ? 'opacity-50 cursor-not-allowed' : ''}`}
-                aria-label="Zoom out"
-              >
-                <Minus size={18} />
-              </button>
-              
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (zoomLevel < maxZoomLevel) {
-                    setZoomLevel(prev => Math.min(prev + 0.5, maxZoomLevel));
-                  }
-                }}
-                disabled={zoomLevel >= maxZoomLevel}
-                className={`bg-luxury-gold/90 hover:bg-luxury-gold text-luxury-black p-1.5 rounded-full shadow-md
-                  ${zoomLevel >= maxZoomLevel ? 'opacity-50 cursor-not-allowed' : ''}`}
-                aria-label="Zoom in"
-              >
-                <Plus size={18} />
-              </button>
-              
-              <span className="bg-luxury-gold/60 text-luxury-black px-2 py-1 rounded text-xs font-medium">
-                {Math.round(zoomLevel * 100)}%
-              </span>
-            </div>
-            
+          </div>
+          
+          {/* Main image container */}
+          <div className="w-full h-full flex items-center justify-center overflow-auto pt-16">
             <Swiper
               modules={[Navigation, Pagination]}
-              navigation
+              navigation={{
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+              }}
               pagination={{ clickable: true }}
               initialSlide={zoomedImageIndex}
-              className="h-full zoom-swiper"
-              onSlideChange={() => setZoomLevel(1)} // Reset zoom when changing slides
+              className="w-full h-full zoom-swiper"
+              onSlideChange={(swiper) => {
+                setZoomedImageIndex(swiper.activeIndex);
+                setZoomLevel(1); // Reset zoom when changing slides
+              }}
             >
               {product.images.map((image, index) => (
                 <SwiperSlide key={`zoom-${index}`}>
                   <div 
-                    className="flex items-center justify-center h-full overflow-auto"
-                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center h-full px-8 py-4 cursor-zoom-in"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Toggle zoom levels on click
+                      if (zoomLevel > 1.5) {
+                        setZoomLevel(1);
+                      } else if (zoomLevel > 1) {
+                        setZoomLevel(maxZoomLevel);
+                      } else {
+                        setZoomLevel(1.5);
+                      }
+                    }}
                   >
-                    <div className="transform transition-all duration-200 ease-out">
+                    {/* Image with smooth zoom transition */}
+                    <div className="transform transition-all duration-300 ease-out">
                       <img 
                         src={image} 
                         alt={`${product.name} - Image ${index + 1}`}
-                        className="max-w-full max-h-[80vh] object-contain transition-transform duration-200"
-                        style={{ transform: `scale(${zoomLevel})` }}
+                        className="max-w-full max-h-[80vh] object-contain"
+                        style={{ 
+                          transform: `scale(${zoomLevel})`,
+                          transition: 'transform 0.3s ease-out' 
+                        }}
+                        onDoubleClick={(e) => e.stopPropagation()}
                       />
                     </div>
                   </div>
                 </SwiperSlide>
               ))}
             </Swiper>
+            
+            {/* Custom navigation buttons */}
+            {product.images.length > 1 && (
+              <>
+                <div className="swiper-button-prev absolute left-4 top-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center cursor-pointer z-10">
+                  <ChevronRight size={20} className="transform rotate-180 text-luxury-black" />
+                </div>
+                <div className="swiper-button-next absolute right-4 top-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center cursor-pointer z-10">
+                  <ChevronRight size={20} className="text-luxury-black" />
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
