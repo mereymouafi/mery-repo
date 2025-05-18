@@ -7,16 +7,6 @@ import { getBrands, Brand } from '../lib/brandService';
 import { getCategories, Category } from '../lib/categoryService';
 import { getLatestProducts, Product as SupabaseProduct } from '../lib/productService';
 
-// Import images for luxury slideshow
-import slide1 from '../ressources/test/test0.png';
-import slide2 from '../ressources/test/test3.png';
-import slide3 from '../ressources/test/test6.png';
-import slide4 from '../ressources/test/test7.png';
-import slide5 from '../ressources/test/test9.png';
-import slide6 from '../ressources/test/test12.png';
-import slide7 from '../ressources/test/test4.jpeg';
-import slide8 from '../ressources/test/test.jpeg';
-
 // Function to generate a slug from a product name
 const generateSlug = (name: string): string => {
   return name
@@ -29,36 +19,28 @@ const generateSlug = (name: string): string => {
 const LuxurySlideshow: React.FC = () => {
   const slides = [
     {
-      image: slide1,
-      alt: 'Luxury menswear - premium fabrics against Moroccan-inspired backdrop'
+      image: "https://images.unsplash.com/photo-1635855374289-b6ca7fe114ab?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      alt: "Elegant luxury clothing with soft golden lighting"
     },
     {
-      image: slide2,
-      alt: 'Elegant male model in premium wool attire with soft golden lighting'
+      image: "https://images.pexels.com/photos/298863/pexels-photo-298863.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      alt: "Premium leather shoes with exquisite craftsmanship"
     },
     {
-      image: slide3,
-      alt: 'Close-up of luxury leather loafers with artisanal craftsmanship'
+      image: "https://images.pexels.com/photos/7609142/pexels-photo-7609142.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      alt: "Luxurious men's accessories with refined details"
     },
     {
-      image: slide4,
-      alt: 'Tailored cashmere coat with minimalist high-end fashion aesthetic'
+      image: "https://images.pexels.com/photos/11911858/pexels-photo-11911858.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      alt: "Elegant watch with premium materials and design"
     },
     {
-      image: slide5,
-      alt: 'Modern luxury menswear with Moroccan design elements'
+      image: "https://images.pexels.com/photos/298864/pexels-photo-298864.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      alt: "Sophisticated leather footwear with artisanal quality"
     },
     {
-      image: slide6,
-      alt: 'Premium suede jacket detail with warm earth tones'
-    },
-    {
-      image: slide7,
-      alt: 'Refined tailoring with mosaic-inspired patterns'
-    },
-    {
-      image: slide8,
-      alt: 'Luxury lifestyle with arched architectural details'
+      image: "https://images.pexels.com/photos/3558802/pexels-photo-3558802.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      alt: "Premium black leather shoes with elegant design"
     }
   ];
 

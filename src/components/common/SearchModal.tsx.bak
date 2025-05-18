@@ -1,0 +1,800 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Search, Loader } from 'lucide-react';
+import { getProducts, searchProducts } from '../../lib/productService';
+import { getCategories } from '../../lib/categoryService';
+import { getBrands } from '../../lib/brandService';
+
+interface SearchModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface SearchSuggestion {
+  type: 'product' | 'category' | 'brand';
+  id: number | string;
+  name: string;
+  image?: string;
+  price?: number;
+  slug?: string;
+}
+
+const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [instantResults, setInstantResults] = useState<SearchSuggestion[]>([]);
+  const [matchedBrand, setMatchedBrand] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [popularProducts, setPopularProducts] = useState<any[]>([]);
+  const [productNames, setProductNames] = useState<string[]>([]);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  // Generate a URL-friendly slug from a product name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  // Focus input on open
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
+  // Fetch products, categories, and brands from Supabase when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchData = async () => {
+        try {
+          // Fetch products
+          const productsResponse = await getProducts();
+          if (productsResponse.data) {
+            setProducts(productsResponse.data);
+            setProductNames(productsResponse.data.map((p: any) => p.name));
+            
+            // Get popular products (best sellers or featured products)
+            const popular = productsResponse.data.filter((p: any) => p.is_best_seller || p.is_new);
+            setPopularProducts(popular.length > 0 ? popular.slice(0, 5) : productsResponse.data.slice(0, 5));
+          }
+          
+          // Fetch categories
+          const categoriesResponse = await getCategories();
+          if (categoriesResponse.data) {
+            setCategories(categoriesResponse.data);
+          }
+          
+          // Fetch brands
+          const brandsResponse = await getBrands();
+          if (brandsResponse.data) {
+            setBrands(brandsResponse.data);
+          }
+        } catch (error) {
+          console.error('Error fetching data for search modal:', error);
+        }
+      };
+      
+      fetchData();
+      
+      // Load recent searches from localStorage
+      const savedSearches = localStorage.getItem('recentSearches');
+      if (savedSearches) {
+        try {
+          setRecentSearches(JSON.parse(savedSearches).slice(0, 4));
+        } catch (error) {
+          console.error('Failed to parse recent searches:', error);
+        }
+      }
+    }
+  }, [isOpen]);
+
+  // Animated placeholder effect
+  useEffect(() => {
+    if (!isOpen || productNames.length === 0) return;
+    
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % productNames.length);
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [isOpen, productNames.length]);
+
+  // Generate suggestions based on search query
+  const getSuggestions = async (query: string) => {
+    const normalizedQuery = query.toLowerCase().trim();
+    console.log('Searching for:', normalizedQuery);
+    
+    if (!normalizedQuery) {
+      setSuggestions([]);
+      return;
+    }
+    
+    try {
+      // Search products using Supabase
+      console.log('Calling searchProducts with query:', normalizedQuery);
+      const { data: productData, error } = await searchProducts(normalizedQuery);
+      console.log('Search results:', productData);
+      if (error) {
+        console.error('Search error:', error);
+      }
+      
+      // Also directly try to get categories matching the query
+      console.log('Available categories:', categories);
+      const matchingCategories = categories.filter(category => 
+        category.name.toLowerCase().includes(normalizedQuery)
+      );
+      console.log('Matching categories:', matchingCategories);
+      
+      // Filter products
+      const productSuggestions = productData
+        ? productData.slice(0, 4).map(product => ({
+            type: 'product' as const,
+            id: product.id,
+            name: product.name,
+            image: product.image,
+            price: product.price,
+            slug: product.slug || generateSlug(product.name)
+          }))
+        : [];
+      
+      // Filter categories
+      const categorySuggestions = categories
+        .filter(category => 
+          category.name.toLowerCase().includes(normalizedQuery) &&
+          category.id !== 'all'
+        )
+        .slice(0, 2)
+        .map(category => ({
+          type: 'category' as const,
+          id: category.id,
+          name: category.name
+        }));}
+      
+      // Filter brands
+      const brandSuggestions = brands
+        .filter(brand => 
+          brand.name.toLowerCase().includes(normalizedQuery) ||
+          brand.id.toLowerCase().includes(normalizedQuery)
+        )
+        .slice(0, 2)
+        .map(brand => ({
+          type: 'brand' as const,
+          id: brand.id,
+          name: brand.name
+        }));
+      
+      // Combine suggestions with products first
+      setSuggestions([
+        ...productSuggestions,
+        ...categorySuggestions,
+        ...brandSuggestions
+      ]);
+    } catch (error) {
+      console.error('Error fetching search suggestions:', error);
+      setSuggestions([]);
+    }
+  };
+
+  // Generate text-based search suggestions based on query
+  const getSearchSuggestions = async (query: string) => {
+    const normalizedQuery = query.toLowerCase().trim();
+    if (normalizedQuery.length === 0) {
+      setSearchSuggestions([]);
+      return;
+    }
+    
+    try {
+      // Get category matches
+      const categoryMatches = categories
+        .filter(category => 
+          category.id !== 'all' && 
+          (category.name.toLowerCase().startsWith(normalizedQuery) ||
+           category.name.toLowerCase().includes(normalizedQuery))
+        )
+        .map(category => category.name);
+      
+      // Get brand matches
+      const brandMatches = brands
+        .filter(brand => 
+          brand.id !== 'all' && 
+          (brand.name.toLowerCase().startsWith(normalizedQuery) ||
+           brand.name.toLowerCase().includes(normalizedQuery))
+        )
+        .map(brand => brand.name);
+      
+      // Search Supabase and get product name matches
+      const { data: searchResults } = await searchProducts(normalizedQuery);
+      const productNameMatches = searchResults
+        ? searchResults.map(product => product.name)
+        : [];
+      
+      // Add common search patterns
+      let suggestedCompletions = [
+        `${normalizedQuery} `
+      ];
+      
+      // Combine all potential suggestions
+      const allPotentialSuggestions = [
+        ...categoryMatches,
+        ...brandMatches, 
+        ...productNameMatches,
+        ...suggestedCompletions
+      ];
+      
+      // Remove duplicates
+      const uniqueSuggestions = Array.from(new Set(allPotentialSuggestions));
+      
+      // Filter to keep only unique suggestions that are different from the query
+      const filteredSuggestions = uniqueSuggestions.filter(suggestion => 
+        suggestion.toLowerCase() !== normalizedQuery &&
+        suggestion.length > normalizedQuery.length
+      );
+      
+      // Sort by relevance:
+      // 1. First, terms that start with the query
+      // 2. Then other matches
+      // 3. For equal relevance, sort by length (shorter first)
+      const sortedSuggestions = filteredSuggestions.sort((a, b) => {
+        const aStartsWith = a.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+        const bStartsWith = b.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+        
+        if (aStartsWith !== bStartsWith) return aStartsWith - bStartsWith;
+        return a.length - b.length;
+      });
+      
+      // Take top 5 results
+      setSearchSuggestions(sortedSuggestions.slice(0, 5));
+    } catch (error) {
+      console.error('Error generating search suggestions:', error);
+      setSearchSuggestions([]);
+    }
+  };
+
+  // Improved instant results function to find more matches
+  const getInstantResults = async (query: string) => {
+    const normalizedQuery = query.toLowerCase().trim();
+    console.log('Getting instant results for:', normalizedQuery);
+    
+    if (!normalizedQuery) {
+      setInstantResults([]);
+      setMatchedBrand(null);
+      return;
+    }
+    
+    try {
+      // Check if query matches any brand name or ID
+      const matchedBrandObj = brands.find(
+        brand => brand.name.toLowerCase().includes(normalizedQuery) || 
+                 brand.id.toLowerCase().includes(normalizedQuery)
+      );
+      
+      // First attempt a direct manual search in categories to find products
+      console.log('Checking categories for:', normalizedQuery);
+      let matchingProducts = [];
+
+      // Look for matching categories first - this is important for terms like "Valises"
+      const matchingCategory = categories.find(cat => 
+        cat.name.toLowerCase().includes(normalizedQuery) || 
+        cat.slug.toLowerCase().includes(normalizedQuery)
+      );
+
+      if (matchingCategory) {
+        console.log('Found matching category:', matchingCategory);
+        // Manually find products with this category_id
+        matchingProducts = products.filter(product => 
+          product.category_id === matchingCategory.id
+        );
+        console.log('Products in matching category:', matchingProducts);
+      }
+      
+      // If no matching category products, try the regular search
+      if (matchingProducts.length === 0) {
+        // Search using Supabase
+        console.log('Falling back to Supabase search for:', normalizedQuery);
+        const { data: searchResults, error } = await searchProducts(normalizedQuery);
+        console.log('Supabase search results:', searchResults);
+        
+        if (error) {
+          console.error('Error searching products:', error);
+          setInstantResults([]);
+          return;
+        }
+        
+        // Use search results if available
+        if (searchResults && searchResults.length > 0) {
+          matchingProducts = searchResults;
+        }
+      }
+      
+      if (matchedBrandObj) {
+        setMatchedBrand(matchedBrandObj.name);
+        
+        // Get all products from this brand
+        const brandProducts = matchingProducts
+          .filter(product => product.brand === matchedBrandObj.id)
+          .map(product => ({
+            type: 'product' as const,
+            id: product.id,
+            name: product.name,
+            image: product.image,
+            price: product.price,
+            slug: product.slug || generateSlug(product.name)
+          }));
+        
+        setInstantResults(brandProducts.slice(0, 6));
+      } else {
+        setMatchedBrand(null);
+        
+        // Sort the results - prioritize name matches
+        const sortedResults = [...matchingProducts].sort((a, b) => {
+          // Name matches get priority
+          const aNameMatch = a.name.toLowerCase().includes(normalizedQuery) ? 0 : 1;
+          const bNameMatch = b.name.toLowerCase().includes(normalizedQuery) ? 0 : 1;
+          
+          if (aNameMatch !== bNameMatch) return aNameMatch - bNameMatch;
+          
+          // Next priority: starts with query
+          const aStartsWith = a.name.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+          const bStartsWith = b.name.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+          
+          if (aStartsWith !== bStartsWith) return aStartsWith - bStartsWith;
+          
+          return 0; // Keep original order
+        });
+        
+        // Map to search results format
+        const results = sortedResults
+          .slice(0, 6) // Limit to 6 products for UI display
+          .map(product => ({
+            type: 'product' as const,
+            id: product.id,
+            name: product.name,
+            image: product.image,
+            price: product.price,
+            slug: product.slug || generateSlug(product.name)
+          }));
+        
+        console.log('Setting instant results:', results);
+        setInstantResults(results);
+      }
+    } catch (error) {
+      console.error('Error getting instant results:', error);
+      setInstantResults([]);
+      setMatchedBrand(null);
+    }
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (query.trim().length >= 1) {
+      setIsSearching(true);
+      setShowSuggestions(true);
+      
+      // Debounce the search for better performance
+      const timer = setTimeout(async () => {
+        try {
+          await Promise.all([
+            getSuggestions(query),
+            getInstantResults(query),
+            getSearchSuggestions(query)
+          ]);
+        } catch (error) {
+          console.error('Error during search:', error);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 300);
+      
+      return () => {
+        clearTimeout(timer);
+      };
+    } else {
+      setSuggestions([]);
+      setSearchSuggestions([]);
+      setInstantResults([]);
+      setMatchedBrand(null);
+      setIsSearching(false);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle search submission (if user presses Enter)
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
+    if (searchQuery.trim()) {
+      // Save to recent searches
+      const updatedSearches = [
+        searchQuery,
+        ...recentSearches.filter(search => search !== searchQuery)
+      ].slice(0, 5);
+      
+      setRecentSearches(updatedSearches);
+      localStorage.setItem('recentSearches', JSON.stringify(updatedSearches));
+      
+      // Instead of navigating away, update search results in-place
+      setIsSearching(true);
+      
+      // Execute searches asynchronously
+      const executeSearch = async () => {
+        try {
+          await Promise.all([
+            getSuggestions(searchQuery),
+            getInstantResults(searchQuery)
+          ]);
+        } catch (error) {
+          console.error('Error executing search:', error);
+        } finally {
+          setIsSearching(false);
+        }
+      };
+      
+      executeSearch();
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle search icon click when there's a query
+  const handleSearchIconClick = () => {
+    if (searchQuery.trim()) {
+      handleSearch();
+    }
+  };
+
+  // Handle search suggestion click
+  const handleSearchSuggestionClick = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    getSuggestions(suggestion);
+    getInstantResults(suggestion);
+    setShowSuggestions(false);
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
+    switch (suggestion.type) {
+      case 'product':
+        navigate(`/product/${suggestion.slug || suggestion.id}`);
+        break;
+      case 'category':
+        navigate(`/shop/${suggestion.id}`);
+        break;
+      case 'brand':
+        navigate(`/shop?brand=${suggestion.id}`);
+        break;
+    }
+    onClose();
+    setSearchQuery('');
+  };
+
+  // Handle recent search click
+  const handleRecentSearchClick = (search: string) => {
+    setSearchQuery(search);
+    navigate(`/search?q=${encodeURIComponent(search)}`);
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-50 bg-white overflow-auto"
+        >
+          <div className="container mx-auto px-4 py-5 relative">
+            {/* Close button (X) positioned at top-right */}
+            <button 
+              onClick={onClose}
+              className="absolute top-2 right-2 p-2"
+              aria-label="Close search"
+            >
+              <X size={18} className="text-black" />
+            </button>
+            
+            {/* Brand Header */}
+            <div className="text-center mb-5">
+              <h2 className="text-2xl font-normal uppercase tracking-widest"
+                style={{ fontFamily: "'LV Clemence', 'Futura Medium', Georgia, serif" }}
+              >
+                {matchedBrand || "MAROC LUXE"}
+              </h2>
+            </div>
+
+            {/* Search input and buttons - Always visible */}
+            <div className="max-w-4xl mx-auto mb-5 relative">
+              <form onSubmit={handleSearch} className={`relative flex items-center border transition-colors duration-300 ${isInputFocused ? 'border-black' : 'border-gray-300'} rounded-full overflow-hidden bg-white shadow-sm`}>
+                <div className="flex-shrink-0 pl-4">
+                  {isSearching ? (
+                    <Loader size={16} className="text-gray-500 animate-spin" />
+                  ) : (
+                    <Search size={16} className="text-gray-500 cursor-pointer" onClick={handleSearchIconClick} />
+                  )}
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={() => setIsInputFocused(false)}
+                  placeholder={productNames.length > 0 ? `Search "${productNames[placeholderIndex]}"` : "Search products..."}
+                  className="flex-grow py-3 px-4 text-base focus:outline-none bg-transparent rounded-full placeholder-gray-400 w-full"
+                  autoComplete="off"
+                  style={{ 
+                    fontFamily: "'Futura', 'Lato', sans-serif", 
+                    fontWeight: 400, 
+                    letterSpacing: '0.3px',
+                    fontSize: '15px'
+                  }}
+                />
+                {searchQuery.trim() && (
+                  <button 
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="flex-shrink-0 px-4 py-1 text-base text-gray-500 focus:outline-none"
+                    style={{ 
+                      fontFamily: "'Futura', 'Lato', sans-serif", 
+                      fontWeight: 400 
+                    }}
+                  >
+                    Effacer
+                  </button>
+                )}
+              </form>
+
+              {/* Search Suggestions Dropdown */}
+              {showSuggestions && searchQuery.trim() && searchSuggestions.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-100 shadow-lg">
+                  {searchSuggestions.map((suggestion, index) => {
+                    // Find where the query ends and suggestion begins
+                    const queryLower = searchQuery.toLowerCase();
+                    const suggestionLower = suggestion.toLowerCase();
+                    
+                    let displaySuggestion;
+                    
+                    if (suggestionLower.startsWith(queryLower)) {
+                      // Direct completion (e.g. 'jean' -> 'jean homme')
+                      displaySuggestion = (
+                        <>
+                          <span className="font-normal text-black">{searchQuery}</span>
+                          <span className="text-gray-500">{suggestion.slice(searchQuery.length)}</span>
+                        </>
+                      );
+                    } else if (suggestionLower.includes(queryLower)) {
+                      // Query appears in the middle (less common case)
+                      const parts = suggestionLower.split(queryLower);
+                      displaySuggestion = (
+                        <>
+                          <span className="text-gray-500">{parts[0]}</span>
+                          <span className="font-normal text-black">{searchQuery}</span>
+                          <span className="text-gray-500">{
+                            parts.slice(1).join(searchQuery.toLowerCase())
+                          }</span>
+                        </>
+                      );
+                    } else {
+                      // Fallback - just show the full suggestion
+                      displaySuggestion = <span>{suggestion}</span>;
+                    }
+                    
+                    return (
+                      <div 
+                        key={index}
+                        className="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleSearchSuggestionClick(suggestion)}
+                      >
+                        <Search size={16} className="text-gray-400 mr-3 flex-shrink-0" />
+                        <span className="text-sm">{displaySuggestion}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Popular searches - Always visible */}
+            <div className="max-w-3xl mx-auto mb-8 text-center">
+              <p className="uppercase text-xs tracking-wider text-gray-500 mb-3" 
+                style={{ 
+                  letterSpacing: '1px',
+                  fontFamily: "'LV Sans', 'Futura Medium', Georgia, serif"
+                }}
+              >RECHERCHES POPULAIRES</p>
+              <div className="flex flex-wrap justify-center gap-8">
+                {[
+                  { name: 'SPEEDY', id: 'speedy' },
+                  { name: 'POCHETTE', id: 'pochette' },
+                  { name: 'NEVERFULL', id: 'neverfull' },
+                  { name: 'BRACELET', id: 'bracelet' },
+                  { name: 'PORTEFEUILLE', id: 'portefeuille' }
+                ].map(category => (
+                  <button 
+                    key={category.id}
+                    onClick={() => {
+                      setSearchQuery(category.name);
+                      getSuggestions(category.name);
+                      getInstantResults(category.name);
+                      setShowSuggestions(false);
+                    }}
+                    className="text-sm uppercase hover:underline tracking-wider"
+                    style={{ 
+                      letterSpacing: '1px', 
+                      fontFamily: "'LV Clemence', 'Futura Medium', Georgia, serif" 
+                    }}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Popular Products Section */}
+            {!searchQuery && (
+              <div className="py-12 border-t border-gray-200">
+                <h3 className="text-center uppercase text-base mb-8" 
+                  style={{ 
+                    letterSpacing: '1px',
+                    fontFamily: "'LV Clemence', 'Futura Medium', Georgia, serif"
+                  }}
+                >
+                  Produits Populaires
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 px-4">
+                  {popularProducts.map((product, index) => (
+                    <div 
+                      key={`popular-${product.id}-${index}`}
+                      className="group relative cursor-pointer"
+                      onClick={() => {
+                        navigate(`/product/${product.slug || generateSlug(product.name)}`);
+                        onClose();
+                      }}
+                    >
+                      {/* Favorite button */}
+                      <button 
+                        className="absolute right-2 top-2 z-10 w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Add favorite functionality
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                        </svg>
+                      </button>
+                      
+                      {/* Product image */}
+                      <div className="mb-2">
+                        <div className="aspect-square bg-gray-50">
+                          <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Product info */}
+                      <div>
+                        <p className="text-xs text-gray-900 font-light leading-tight mb-1 line-clamp-2">
+                          {product.name}
+                        </p>
+                        <p className="text-xs text-gray-900">
+                          {product.price.toLocaleString()} MAD
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Results section */}
+            {searchQuery.trim() !== '' && !isSearching && (
+              <>
+                {instantResults.length > 0 ? (
+                  <div className="border-t border-gray-200 pt-5 mt-2">
+                    <div className="mb-6">
+                      <h3 className="text-lg font-medium mb-4">Results for "{searchQuery}"</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                        {instantResults.map((result, idx) => (
+                          <div
+                            key={`result-${result.id}-${idx}`}
+                            className="cursor-pointer group"
+                            onClick={() => handleSuggestionClick(result)}
+                          >
+                            <div className="aspect-square bg-gray-50 mb-2 overflow-hidden">
+                              <img 
+                                src={result.image} 
+                                alt={result.name} 
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                            </div>
+                            <h4 className="text-sm font-medium line-clamp-2">{result.name}</h4>
+                            {result.price && (
+                              <p className="text-sm text-gray-700 mt-1">{result.price.toLocaleString()} MAD</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {suggestions.length > instantResults.length && (
+                      <div className="text-center mt-4 mb-8">
+                        <button
+                          onClick={() => navigate(`/search?q=${encodeURIComponent(searchQuery)}`)}
+                          className="text-luxury-gold hover:underline text-sm flex items-center mx-auto"
+                        >
+                          View all results
+                          <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 border-t border-gray-200 mt-2">
+                    <div className="max-w-md mx-auto">
+                      <h3 className="text-xl font-serif mb-2">No results found</h3>
+                      <p className="text-gray-500 mb-4">
+                        We couldn't find any products matching "{searchQuery}".
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        Try checking your spelling or using more general terms.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Recent searches section (only visible when no active query) */}
+            {!searchQuery && recentSearches.length > 0 && (
+              <div className="border-t border-gray-200 pt-8 mt-4">
+                <div className="max-w-2xl mx-auto">
+                  <h3 className="text-sm text-gray-500 mb-4 uppercase tracking-wider">Recent Searches</h3>
+                  <ul className="flex flex-wrap gap-2">
+                    {recentSearches.map((search, index) => (
+                      <li key={`recent-${index}`}>
+                        <button
+                          onClick={() => handleRecentSearchClick(search)}
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors"
+                        >
+                          {search}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default SearchModal;
