@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
       <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand Column */}
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-4 items-center md:items-start">
             <div className="mb-4">
               <Logo variant="white" />
             </div>
@@ -48,61 +48,70 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Quick Links */}
-          <div>
+          <div className="text-center md:text-left">
             <h3 className="text-luxury-gold text-lg font-serif mb-6">Quick Links</h3>
-            <ul className="space-y-3">
-              <li>
-                <Link to="/shop" className="text-gray-300 hover:text-luxury-gold transition-colors">Shop</Link>
+            <ul className="flex flex-row flex-wrap justify-center md:justify-start md:flex-col md:gap-y-3 md:gap-x-0">
+              <li className="flex items-center">
+                <Link to="/shop" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">Shop</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/about" className="text-gray-300 hover:text-luxury-gold transition-colors">About Us</Link>
+              <li className="flex items-center">
+                <Link to="/about" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">About Us</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/contact" className="text-gray-300 hover:text-luxury-gold transition-colors">Contact</Link>
+              <li className="flex items-center">
+                <Link to="/contact" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">Contact</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/shop/new-arrivals" className="text-gray-300 hover:text-luxury-gold transition-colors">New Arrivals</Link>
+              <li className="flex items-center">
+                <Link to="/shop/new-arrivals" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">New Arrivals</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/shop/best-sellers" className="text-gray-300 hover:text-luxury-gold transition-colors">Best Sellers</Link>
+              <li className="flex items-center">
+                <Link to="/shop/best-sellers" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">Best Sellers</Link>
               </li>
             </ul>
           </div>
 
           {/* Customer Service */}
-          <div>
+          <div className="text-center md:text-left">
             <h3 className="text-luxury-gold text-lg font-serif mb-6">Customer Service</h3>
-            <ul className="space-y-3">
-              <li>
-                <Link to="/shipping" className="text-gray-300 hover:text-luxury-gold transition-colors">Shipping & Returns</Link>
+            <ul className="flex flex-row flex-wrap justify-center md:justify-start md:flex-col md:gap-y-3 md:gap-x-0">
+              <li className="flex items-center">
+                <Link to="/shipping" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">Shipping & Returns</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/faq" className="text-gray-300 hover:text-luxury-gold transition-colors">FAQ</Link>
+              <li className="flex items-center">
+                <Link to="/faq" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">FAQ</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/privacy-policy" className="text-gray-300 hover:text-luxury-gold transition-colors">Privacy Policy</Link>
+              <li className="flex items-center">
+                <Link to="/privacy-policy" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">Privacy Policy</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/terms" className="text-gray-300 hover:text-luxury-gold transition-colors">Terms & Conditions</Link>
+              <li className="flex items-center">
+                <Link to="/terms" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">Terms & Conditions</Link>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
-              <li>
-                <Link to="/order-tracking" className="text-gray-300 hover:text-luxury-gold transition-colors">Order Tracking</Link>
+              <li className="flex items-center">
+                <Link to="/order-tracking" className="text-gray-300 hover:text-luxury-gold transition-colors inline-block border-b border-transparent hover:border-luxury-gold/30">Order Tracking</Link>
               </li>
             </ul>
           </div>
 
           {/* Contact Information */}
-          <div>
+          <div className="text-center md:text-left">
             <h3 className="text-luxury-gold text-lg font-serif mb-6">Contact Us</h3>
-            <ul className="space-y-4">
+            <ul className="flex flex-row flex-wrap justify-center md:justify-start md:flex-col md:space-y-4 md:gap-x-0">
               
               <li className="flex items-center">
                 <Phone size={18} className="text-luxury-gold mr-2 flex-shrink-0" />
-                <a href="tel:0675-597187" className="text-gray-300 hover:text-luxury-gold transition-colors">0675‑597187</a>
+                <a href="tel:0675-597187" className="text-gray-300 hover:text-luxury-gold transition-colors border-b border-transparent hover:border-luxury-gold/30">0675‑597187</a>
+                <span className="h-4 w-px bg-luxury-gold mx-3 md:hidden"></span>
               </li>
               <li className="flex items-center">
                 <Mail size={18} className="text-luxury-gold mr-2 flex-shrink-0" />
-                <a href="mailto:info@luxemaroc.com" className="text-gray-300 hover:text-luxury-gold transition-colors">info@luxemaroc.com</a>
+                <a href="mailto:info@luxemaroc.com" className="text-gray-300 hover:text-luxury-gold transition-colors border-b border-transparent hover:border-luxury-gold/30">info@luxemaroc.com</a>
               </li>
             </ul>
             <div className="mt-6">

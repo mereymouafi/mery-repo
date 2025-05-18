@@ -130,12 +130,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
           </div>
           
           {/* Navigation Links with staggered animations - using animationReady state */}
-          <nav className="w-full flex flex-col items-center">
+          <nav className="w-full">
+            <div className="flex flex-col items-center space-y-3 px-2">
             {['Home', 'Shop', 'About', 'Contact'].map((item, index) => (
               <Link
                 key={item}
                 to={`/${item === 'Home' ? '' : item.toLowerCase()}`}
-                className={`relative font-serif text-xl text-[#1A1A1A] tracking-wide hover:text-[#D4AF37] transition-all duration-300 group my-4 py-1 px-6 overflow-hidden ${animationReady ? 'animate-fade-in-up' : 'opacity-0'}`}
+                className={`relative font-serif text-base text-[#1A1A1A] tracking-wide hover:text-[#D4AF37] transition-all duration-300 group py-1 px-3 overflow-hidden ${animationReady ? 'animate-fade-in-up' : 'opacity-0'}`}
                 style={{ animationDelay: `${300 + index * 100}ms` }}
                 onClick={onClose}
               >
@@ -160,6 +161,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                 <span className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#D4AF37] scale-0 group-hover:scale-100 transition-transform delay-300"></span>
               </Link>
             ))}
+            </div>
           </nav>
           
           {/* Enhanced decorative element - middle */}
