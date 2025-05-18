@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 // Import icons
-import { HomeIcon, ShoppingBagIcon, UserIcon, PhoneIcon, ArrowRightOnRectangleIcon, TagIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ShoppingBagIcon, UserIcon, PhoneIcon, ArrowRightOnRectangleIcon, TagIcon, ArchiveBoxIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
 
 const AdminNavbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -55,6 +55,13 @@ const AdminNavbar: React.FC = () => {
           >
             <ArchiveBoxIcon className="h-4 w-4 inline mr-1" />
             Products
+          </Link>
+          <Link 
+            to="/admin/brands" 
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive('/admin/brands') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
+          >
+            <BuildingStorefrontIcon className="h-4 w-4 inline mr-1" />
+            Brands
           </Link>
         </div>
       </div>

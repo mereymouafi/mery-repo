@@ -14,6 +14,7 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import OrdersAdminPage from './pages/OrdersAdminPage';
 import CategoriesAdminPage from './pages/CategoriesAdminPage';
 import ProductsAdminPage from './pages/ProductsAdminPage';
+import BrandsAdminPage from './pages/BrandsAdminPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import SearchResultsPage from './pages/SearchResultsPage';
@@ -61,6 +62,7 @@ function App() {
                 <Route path="orders" element={<OrdersAdminPage />} />
                 <Route path="categories" element={<CategoriesAdminPage />} />
                 <Route path="products" element={<ProductsAdminPage />} />
+                <Route path="brands" element={<BrandsAdminPage />} />
                 {/* Add more admin routes here as needed */}
               </Route>
             </Route>
