@@ -168,7 +168,7 @@ const ProductsAdminPage: React.FC = () => {
 
     try {
       // Validate inputs
-      if (!name || !price || !categoryId || !image || !color || !dimensions || !material || !madeIn) {
+      if (!name || !price || !categoryId || !image || !color || !material || !madeIn) {
         setError('Please fill in all required fields');
         setSubmitting(false);
         return;
@@ -597,9 +597,10 @@ const ProductsAdminPage: React.FC = () => {
                 id="additionalImages"
                 value={additionalImages}
                 onChange={(e) => setAdditionalImages(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 resize-y"
                 placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
+                style={{ minHeight: '80px' }}
               />
             </div>
 
@@ -620,7 +621,7 @@ const ProductsAdminPage: React.FC = () => {
 
               <div>
                 <label htmlFor="dimensions" className="block text-sm font-medium text-gray-700 mb-1">
-                  Dimensions*
+                  Dimensions
                 </label>
                 <input
                   type="text"
@@ -628,7 +629,6 @@ const ProductsAdminPage: React.FC = () => {
                   value={dimensions}
                   onChange={(e) => setDimensions(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  required
                   placeholder="35 × 29 × 18 cm"
                 />
               </div>
