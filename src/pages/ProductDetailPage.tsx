@@ -13,12 +13,14 @@ import 'swiper/css/pagination';
 
 // Supabase client
 import { supabase } from '../lib/supabase';
+import { getRelatedProducts, Product as SupabaseProduct } from '../lib/productService';
 
 // Types
 import { Product } from '../data/products';
-
-// Import CartContext
 import { CartContext } from '../context/CartContext';
+
+// Type for products coming from Supabase
+type ProductWithSlug = SupabaseProduct & { slug?: string };
 
 const ProductDetailPage: React.FC = () => {
   // Modified to use both slug and id from URL parameters
@@ -35,6 +37,11 @@ const ProductDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
+
+  // State for related products
+  const [relatedProducts, setRelatedProducts] = useState<ProductWithSlug[]>([]);
+  const [loadingRelated, setLoadingRelated] = useState(true);
+  const [relatedError, setRelatedError] = useState<string | null>(null);
 
   // Generate a URL-friendly slug from the product name
   const generateSlug = (name: string) => {
@@ -169,6 +176,63 @@ const ProductDetailPage: React.FC = () => {
 
           setProduct(processedProduct);
           document.title = `${productData.name} | Luxe Maroc`;
+          
+          // Fetch related products from the same category directly without depending on product state
+          try {
+            setLoadingRelated(true);
+            setRelatedError(null);
+            
+            // Get related products from the same category, excluding current product
+            getRelatedProducts(productData.category_id, productData.id)
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error('Error fetching related products:', error);
+                  setRelatedError('Failed to load related products');
+                  return;
+                }
+                
+                if (data && data.length > 0) {
+                  // Process related products to ensure proper format
+                  const processedRelated = data.map(relatedProduct => {
+                    // Process images
+                    let images = relatedProduct.images;
+                    if (typeof images === 'string') {
+                      try {
+                        images = JSON.parse(images);
+                      } catch (e) {
+                        images = [relatedProduct.image];
+                      }
+                    } else if (!images || !images.length) {
+                      images = [relatedProduct.image];
+                    }
+                    
+                    // Generate slug if not present
+                    const slug = relatedProduct.slug || generateSlug(relatedProduct.name);
+                    
+                    return {
+                      ...relatedProduct,
+                      images,
+                      slug
+                    };
+                  });
+                  
+                  setRelatedProducts(processedRelated);
+                } else {
+                  setRelatedProducts([]);
+                }
+              })
+              .catch(err => {
+                console.error('Failed to fetch related products:', err);
+                setRelatedError('An error occurred while loading related products');
+              })
+              .finally(() => {
+                setLoadingRelated(false);
+              });
+          } catch (err) {
+            console.error('Error initiating related products fetch:', err);
+            setRelatedError('Failed to load related products');
+            setLoadingRelated(false);
+          }
         } else {
           console.error('Product not found');
           setError('Product not found');
@@ -241,36 +305,34 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const handleAddToCart = () => {
+    // Make sure product exists
+    if (!product) return;
+    
     // Check if size is selected for footwear
     if (product.category === 'footwear' && !selectedSize) {
       setSizeError(true);
       return;
     }
-
-    // In a real app, this would dispatch to a state management system
-    console.log(`Added ${quantity} of ${product.name} to cart`);
-
-    // Add to cart context
+    
     addToCart({
       id: Date.now(), // Generate a unique ID for the cart item
-      productId: product.id,
+      productId: product.id, 
       name: product.name,
       price: product.price,
       quantity: quantity,
-      image: product.images[0], // Use first image from images array
-      brand: product.brand,
+      image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : "",
+      brand: product.brand || "",
       size: selectedSize
     });
 
     setAddedToCart(true);
-
-    // Reset the "Added" confirmation after 3 seconds
-    setTimeout(() => {
-      setAddedToCart(false);
-    }, 3000);
+    setTimeout(() => setAddedToCart(false), 3000);
   };
 
   const handleQuickBuy = () => {
+    // Make sure product exists
+    if (!product) return;
+    
     // Check if size is selected for footwear
     if (product.category === 'footwear' && !selectedSize) {
       setSizeError(true);
@@ -678,29 +740,59 @@ const ProductDetailPage: React.FC = () => {
             <h2 className="text-2xl font-serif text-luxury-black mb-8">You May Also Like</h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* To be implemented with Supabase fetch for related products */}
-              {/* For now, we'll show a loading skeleton */}
-              {[1, 2, 3, 4].map(index => (
-                <div key={index} className="group product-card-hover">
-                  <div className="block">
-                    <div className="relative aspect-square overflow-hidden mb-4 bg-gray-100 animate-pulse">
-                      {/* Placeholder for image */}
-                    </div>
-                    
-                    {/* Brand placeholder */}
-                    <div className="uppercase text-xs text-luxury-gray tracking-wider mb-1 w-16 h-3 bg-gray-200 animate-pulse">
-                    </div>
-                    
-                    {/* Name placeholder */}
-                    <div className="font-serif text-luxury-black text-lg mb-1 truncate w-3/4 h-5 bg-gray-200 animate-pulse">
-                    </div>
-                    
-                    {/* Price placeholder */}
-                    <div className="text-luxury-gold font-medium w-20 h-5 bg-gray-200 animate-pulse">
+              {loadingRelated ? (
+                // Loading skeletons when fetching related products
+                [...Array(4)].map((_, index) => (
+                  <div key={index} className="group product-card-hover">
+                    <div className="block">
+                      <div className="relative aspect-square overflow-hidden mb-4 bg-gray-100 animate-pulse">
+                      </div>
+                      <div className="uppercase text-xs text-luxury-gray tracking-wider mb-1 w-16 h-3 bg-gray-200 animate-pulse"></div>
+                      <div className="font-serif text-luxury-black text-lg mb-1 truncate w-3/4 h-5 bg-gray-200 animate-pulse"></div>
+                      <div className="text-luxury-gold font-medium w-20 h-5 bg-gray-200 animate-pulse"></div>
                     </div>
                   </div>
+                ))
+              ) : relatedError ? (
+                // Error message if related products fail to load
+                <div className="col-span-full text-center py-8">
+                  <p className="text-luxury-gray">{relatedError}</p>
                 </div>
-              ))}
+              ) : relatedProducts.length === 0 ? (
+                // Message when no related products are found
+                <div className="col-span-full text-center py-8">
+                  <p className="text-luxury-gray">No related products found for this category.</p>
+                </div>
+              ) : (
+                // Display actual related products
+                relatedProducts.map((relatedProduct) => (
+                  <motion.div
+                    key={relatedProduct.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    viewport={{ once: true }}
+                    className="group product-card-hover"
+                  >
+                    <Link to={`/product/${relatedProduct.slug}`} className="block">
+                      <div className="relative aspect-square overflow-hidden mb-4">
+                        <img 
+                          src={Array.isArray(relatedProduct.images) && relatedProduct.images.length > 0 
+                              ? relatedProduct.images[0] 
+                              : relatedProduct.image} 
+                          alt={relatedProduct.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      </div>
+                      <div className="uppercase text-xs text-luxury-gray tracking-wider mb-1">
+                        {relatedProduct.brand}
+                      </div>
+                      <h3 className="font-serif text-luxury-black text-lg mb-1 truncate">{relatedProduct.name}</h3>
+                      <p className="text-luxury-gold font-medium">{relatedProduct.price.toLocaleString()} MAD</p>
+                    </Link>
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -219,3 +219,32 @@ export const getLatestProducts = async (limit: number = 4): Promise<{
     return { data: null, error: error as Error };
   }
 };
+
+/**
+ * Get related products from the same category
+ * @param categoryId The category ID to find related products from
+ * @param currentProductId The current product ID to exclude from results
+ * @param limit Number of related products to return
+ */
+export const getRelatedProducts = async (categoryId: string, currentProductId: string, limit: number = 4): Promise<{
+  data: Product[] | null;
+  error: Error | null;
+}> => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('category_id', categoryId)
+      .neq('id', currentProductId) // Exclude current product
+      .limit(limit);
+
+    if (error) {
+      throw error;
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error(`Error fetching related products:`, error);
+    return { data: null, error: error as Error };
+  }
+};
