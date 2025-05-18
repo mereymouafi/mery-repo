@@ -37,13 +37,16 @@ const ProductsAdminPage: React.FC = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const categoryIdFromUrl = searchParams.get('categoryId');
+  const brandIdFromUrl = searchParams.get('brandId');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
+  const [dbBrands, setDbBrands] = useState<{id: string, name: string}[]>([]);
   const [importing, setImporting] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(categoryIdFromUrl);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(brandIdFromUrl);
   
   // Form state
   const [name, setName] = useState('');
@@ -74,6 +77,7 @@ const ProductsAdminPage: React.FC = () => {
 
   useEffect(() => {
     fetchCategories();
+    fetchBrands();
     fetchProducts();
     
     // Set up real-time subscription
@@ -92,19 +96,28 @@ const ProductsAdminPage: React.FC = () => {
     };
   }, []);
 
-  // Update selectedCategoryId when URL parameter changes
+  // Update selected filters when URL parameters change
   useEffect(() => {
     setSelectedCategoryId(categoryIdFromUrl);
-  }, [categoryIdFromUrl]);
+    setSelectedBrandId(brandIdFromUrl);
+  }, [categoryIdFromUrl, brandIdFromUrl]);
 
-  // Filter products when selectedCategoryId changes
+  // Filter products when selectedCategoryId or selectedBrandId changes
   useEffect(() => {
+    let filtered = [...dbProducts];
+    
+    // Filter by category if selected
     if (selectedCategoryId) {
-      setFilteredProducts(dbProducts.filter(product => product.category_id === selectedCategoryId));
-    } else {
-      setFilteredProducts(dbProducts);
+      filtered = filtered.filter(product => product.category_id === selectedCategoryId);
     }
-  }, [selectedCategoryId, dbProducts]);
+    
+    // Filter by brand if selected
+    if (selectedBrandId) {
+      filtered = filtered.filter(product => product.brand === selectedBrandId);
+    }
+    
+    setFilteredProducts(filtered);
+  }, [selectedCategoryId, selectedBrandId, dbProducts]);
 
   const fetchCategories = async () => {
     try {
@@ -120,6 +133,23 @@ const ProductsAdminPage: React.FC = () => {
       setDbCategories(data || []);
     } catch (err) {
       console.error('Error fetching categories:', err);
+    }
+  };
+  
+  const fetchBrands = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('brands')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setDbBrands(data || []);
+    } catch (err) {
+      console.error('Error fetching brands:', err);
     }
   };
 
@@ -138,12 +168,18 @@ const ProductsAdminPage: React.FC = () => {
       const productsData = data || [];
       setDbProducts(productsData);
       
-      // Apply category filter if one is selected
+      // Apply filters if selected
+      let filtered = [...productsData];
+      
       if (selectedCategoryId) {
-        setFilteredProducts(productsData.filter(product => product.category_id === selectedCategoryId));
-      } else {
-        setFilteredProducts(productsData);
+        filtered = filtered.filter(product => product.category_id === selectedCategoryId);
       }
+      
+      if (selectedBrandId) {
+        filtered = filtered.filter(product => product.brand === selectedBrandId);
+      }
+      
+      setFilteredProducts(filtered);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError('Failed to fetch products');
@@ -352,6 +388,11 @@ const ProductsAdminPage: React.FC = () => {
   const getCategoryName = (categoryId: string): string => {
     const category = dbCategories.find(cat => cat.id === categoryId);
     return category ? category.name : 'Unknown';
+  };
+  
+  const getBrandName = (brandId: string): string => {
+    const brand = dbBrands.find(b => b.id === brandId);
+    return brand ? brand.name : 'Unknown';
   };
   
   const importAllProducts = async () => {
@@ -744,25 +785,53 @@ const ProductsAdminPage: React.FC = () => {
         {/* Products List */}
         <div className="bg-white shadow-md rounded-lg p-6">
           {/* Category Filter */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-700 mb-2">Filter by Category</h3>
-            <div className="flex flex-wrap gap-2">
-              <button
-                className={`px-3 py-1 rounded text-sm transition-colors ${selectedCategoryId === null ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                onClick={() => setSelectedCategoryId(null)}
-              >
-                All Products
-              </button>
-              {dbCategories.map((category) => (
+          {/* Filters */}
+          <div className="space-y-6">
+            {/* Category Filter */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">Filter by Category</h3>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={category.id}
-                  className={`px-3 py-1 rounded text-sm transition-colors ${selectedCategoryId === category.id ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                  onClick={() => setSelectedCategoryId(category.id)}
+                  className={`px-3 py-1 rounded text-sm transition-colors ${selectedCategoryId === null ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  onClick={() => setSelectedCategoryId(null)}
                 >
-                  {category.name}
+                  All Categories
                 </button>
-              ))}
+                {dbCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${selectedCategoryId === category.id ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    onClick={() => setSelectedCategoryId(category.id)}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
             </div>
+            
+            {/* Brand Filter */}
+            {dbBrands.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Filter by Brand</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className={`px-3 py-1 rounded text-sm transition-colors ${selectedBrandId === null ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    onClick={() => setSelectedBrandId(null)}
+                  >
+                    All Brands
+                  </button>
+                  {dbBrands.map((brand) => (
+                    <button
+                      key={brand.id}
+                      className={`px-3 py-1 rounded text-sm transition-colors ${selectedBrandId === brand.id ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                      onClick={() => setSelectedBrandId(brand.id)}
+                    >
+                      {brand.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <h2 className="text-xl font-semibold mb-4">Existing Products</h2>
           
@@ -775,7 +844,8 @@ const ProductsAdminPage: React.FC = () => {
               <div className="mb-2">
                 <p className="text-sm text-gray-600">
                   Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
-                  {selectedCategoryId ? ` in ${getCategoryName(selectedCategoryId)}` : ''}
+                  {selectedCategoryId ? ` in category "${getCategoryName(selectedCategoryId)}"` : ''}
+                  {selectedBrandId ? ` from brand "${getBrandName(selectedBrandId)}"` : ''}
                 </p>
               </div>
               <div className="overflow-x-auto">
