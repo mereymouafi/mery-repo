@@ -8,6 +8,14 @@ import { getCategories, Category } from '../lib/categoryService';
 import { getLatestProducts, Product as SupabaseProduct } from '../lib/productService';
 import luxuryVideo from '../ressources/1722697-uhd_3840_2160_25fps.mp4';
 
+// Function to generate a slug from a product name
+const generateSlug = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+};
+
 // Brands Display Component
 const BrandsDisplay: React.FC = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -196,7 +204,8 @@ const HomePage: React.FC = () => {
           setProductError('Failed to load latest products. Please try again later.');
         } else if (data && data.length > 0) {
           // Process the data to ensure images are in the right format
-          const processedData = data.map(product => {
+          const processedData = data.map((product) => {
+            // Process images
             let images = product.images;
             if (typeof images === 'string') {
               try {
@@ -208,9 +217,13 @@ const HomePage: React.FC = () => {
               images = [product.image];
             }
             
+            // Generate a slug if one doesn't exist
+            const slug = product.slug || generateSlug(product.name);
+            
             return {
               ...product,
-              images
+              images,
+              slug
             };
           });
           
@@ -405,7 +418,7 @@ const HomePage: React.FC = () => {
                     viewport={{ once: true }}
                     className="group product-card-hover"
                   >
-                    <Link to={`/product/${product.id}`} className="block">
+                    <Link to={`/product/${product.slug || generateSlug(product.name)}`} className="block">
                       <div className="relative aspect-square overflow-hidden mb-4">
                         <img 
                           src={product.image} 

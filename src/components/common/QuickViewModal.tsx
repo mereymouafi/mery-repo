@@ -97,6 +97,15 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
           onClick={handleOverlayClick}
         >
+          {/* Hide product IDs */}
+          <style>
+            {`
+              /* Hide any elements that might display product IDs */
+              [data-product-id], .product-id, #product-id, div[data-product-id] {
+                display: none !important;
+              }
+            `}
+          </style>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -263,7 +272,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                   
                   <div className="text-center">
                     <Link 
-                      to={`/product/${product.id}`} 
+                      to={`/product/${product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`} 
                       className="text-luxury-gold hover:underline"
                       onClick={onClose}
                     >

@@ -38,7 +38,10 @@ function App() {
               <Route index element={<HomePage />} />
               <Route path="shop" element={<ShopPage />} />
               <Route path="shop/:category" element={<ShopPage />} />
-              <Route path="product/:id" element={<ProductDetailPage />} />
+              {/* Changed from :id to :slug for better SEO and hiding product IDs */}
+              <Route path="product/:slug" element={<ProductDetailPage />} />
+              {/* Keep the old route for backward compatibility */}
+              <Route path="p/:id" element={<ProductDetailPage />} />
               <Route path="about" element={<AboutPage />} />
               <Route path="contact" element={<ContactPage />} />
               <Route path="privacy-policy" element={<PrivacyPolicyPage />} />

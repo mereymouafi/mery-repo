@@ -15,6 +15,7 @@ export interface Product {
   material: string;
   madeIn: string;
   sizes?: string[];
+  slug?: string; // Added for SEO-friendly URLs
 }
 
 // Added new categories and brands inspired by negosiodelux.store

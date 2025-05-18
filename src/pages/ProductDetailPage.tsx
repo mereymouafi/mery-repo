@@ -21,7 +21,8 @@ import { Product } from '../data/products';
 import { CartContext } from '../context/CartContext';
 
 const ProductDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  // Modified to use both slug and id from URL parameters
+  const { slug, id } = useParams<{ slug?: string; id?: string }>();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -35,71 +36,145 @@ const ProductDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
 
+  // Generate a URL-friendly slug from the product name
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
   // Get cart context
   const { addToCart } = useContext(CartContext);
 
   // Fetch product from Supabase
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!id) return;
+      // Exit if we don't have either a slug or an ID
+      if (!slug && !id) return;
 
       setLoading(true);
       setError(null);
 
       try {
-        // Determine if id is a UUID or a number
-        const isNumeric = /^\d+$/.test(id);
-        let query = supabase.from('products').select('*');
+        // Start with a basic query
+        let productData = null;
 
-        if (isNumeric) {
-          // If id is numeric, treat it as a number
-          query = query.eq('id', parseInt(id));
-        } else {
-          // If id is not numeric, treat it as UUID
-          query = query.eq('id', id);
+        // APPROACH 1: If we have an ID, use that first (backward compatibility)
+        if (id) {
+          const isNumeric = /^\d+$/.test(id);
+          let query = supabase.from('products').select('*');
+          
+          if (isNumeric) {
+            query = query.eq('id', parseInt(id));
+          } else {
+            query = query.eq('id', id);
+          }
+          
+          const { data, error } = await query.single();
+          
+          if (error) {
+            console.error('Error fetching product by ID:', error);
+          } else if (data) {
+            productData = data;
+            console.log('Found product by ID:', data.name);
+          }
         }
-
-        const { data, error: fetchError } = await query.single();
-
-        if (fetchError) {
-          console.error('Error fetching product:', fetchError);
-          setError('Product not found');
-          return;
+        
+        // APPROACH 2: If we have a slug OR if ID search failed, try slug-based search
+        if ((!productData && slug) || (slug && !id)) {
+          console.log('Trying to find product by slug:', slug);
+          
+          // Get all products 
+          const { data: allProducts, error: listError } = await supabase
+            .from('products')
+            .select('*');
+          
+          if (listError) {
+            console.error('Error fetching products:', listError);
+          } else if (allProducts && allProducts.length > 0) {
+            console.log(`Found ${allProducts.length} products, searching for match...`);
+            
+            // Extract search terms from the slug
+            const searchTerms = slug.split('-');
+            console.log('Search terms:', searchTerms);
+            
+            // Match against product names
+            const matches = allProducts.filter(product => {
+              if (!product.name) return false;
+              const productName = product.name.toLowerCase();
+              
+              // Check if any search term is in the product name
+              return searchTerms.some(term => {
+                // Skip very short terms (like 'a' or 'de')
+                if (term.length < 3) return false;
+                return productName.includes(term.toLowerCase());
+              });
+            });
+            
+            console.log(`Found ${matches.length} potential matches`);
+            
+            if (matches.length > 0) {
+              // Use the first match (in the future, you can improve the matching algorithm)
+              productData = matches[0];
+              console.log('Best match:', productData.name);
+            }
+          }
         }
-
-        if (data) {
+        
+        // If we found a product through any approach, process it
+        if (productData) {
           // Process images (convert from string to array if needed)
-          let images = data.images;
+          let images = productData.images;
           if (typeof images === 'string') {
             try {
               images = JSON.parse(images);
             } catch (e) {
-              images = [data.image];
+              images = [productData.image]; 
             }
-          } else if (!images) {
-            images = [data.image];
+          } else if (!images || !images.length) {
+            images = [productData.image];
           }
 
           // Process sizes (convert from string to array if needed)
-          let sizes = data.sizes;
+          let sizes = productData.sizes;
           if (typeof sizes === 'string') {
             try {
               sizes = JSON.parse(sizes);
             } catch (e) {
               if (sizes) {
                 sizes = sizes.split(',').map((size: string) => size.trim());
+              } else {
+                sizes = [];
               }
             }
           }
+          
+          // Generate slug if product doesn't have one
+          const productSlug = productData.slug || generateSlug(productData.name);
+          
+          // If we're accessing via ID but we have a slug, redirect to the slug URL
+          if (id && !slug && productSlug) {
+            navigate(`/product/${productSlug}`, { replace: true });
+            return;
+          }
 
+          // Create the final processed product
           const processedProduct = {
-            ...data,
+            ...productData,
             images,
-            sizes
+            sizes,
+            slug: productSlug
           };
 
           setProduct(processedProduct);
+          document.title = `${productData.name} | Luxe Maroc`;
+        } else {
+          console.error('Product not found');
+          setError('Product not found');
         }
+
+        // The product processing is now handled in the code above
       } catch (err) {
         console.error('Failed to fetch product:', err);
         setError('Failed to load product');
@@ -234,6 +309,26 @@ const ProductDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Hide product IDs - Enhanced targeting */}
+      <style>
+        {`
+          /* Hide UUID formats like the one in your screenshot */
+          div:empty + div:not(:has(img)):not(:has(h1)):not(:has(div.grid)):not(:has(button)):not(:has(nav)) {
+            display: none !important;
+          }
+          /* Hide any direct spans with UUID pattern text */
+          span:not(:has(*)):not([class]):not([id]) {
+            display: none !important;
+          }
+          /* Hide product SKUs, IDs, and any other identifiers */
+          [data-product-id], .product-id, #product-id, 
+          [data-sku], .sku, #sku, .product-sku,
+          [data-product-code], .product-code, #product-code {
+            display: none !important;
+          }
+        `}
+      </style>
 
       <section className="py-12">
         <div className="container">

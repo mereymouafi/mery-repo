@@ -47,6 +47,24 @@ p, li, a {
   @apply transition-all duration-300 hover:shadow-md;
 }
 
+/* Hide all product IDs, UUIDs, and SKUs globally */
+[data-product-id], .product-id, #product-id,
+[data-sku], .sku, #sku, .product-sku,
+[data-product-code], .product-code, #product-code,
+[class*="uuid"], [id*="uuid"] {
+  display: none !important;
+}
+
+/* Hide UUID pattern text in non-interactive elements */
+.container > div:empty + div {
+  display: none !important;
+}
+
+/* Hide spans that might contain formatted IDs */
+span:not([class]):not([id]) {
+  display: none !important;
+}
+
 /* Smooth transitions */
 .page-transition {
   @apply transition-opacity duration-500;

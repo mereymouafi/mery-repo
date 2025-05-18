@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Filter, X, ChevronDown } from 'lucide-react';
@@ -11,9 +11,18 @@ import { getCategories, Category } from '../lib/categoryService';
 import { Brand } from '../lib/brandService';
 import { supabase } from '../lib/supabase';
 
+// Generate a URL-friendly slug from a product name
+const generateSlug = (name: string) => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
+
 const ShopPage: React.FC = () => {
   const { category } = useParams<{ category?: string }>();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
   const brandParam = searchParams.get('brand');
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -431,6 +440,16 @@ const ShopPage: React.FC = () => {
         <title>{getPageTitle()} | Luxe Maroc</title>
         <meta name="description" content={`Shop our luxury ${category || 'products'} collection at Luxe Maroc.`} />
       </Helmet>
+      
+      {/* Hide product IDs */}
+      <style>
+        {`
+          /* Hide any elements that might be displaying product IDs */
+          [data-product-id], .product-id, #product-id, div[data-product-id] {
+            display: none !important;
+          }
+        `}
+      </style>
 
       {/* Page Header */}
       <section className="bg-luxury-cream py-12">
@@ -753,7 +772,7 @@ const ShopPage: React.FC = () => {
                       className="group product-card-hover"
                     >
                       <div className="relative">
-                        <Link to={`/product/${product.id}`} className="block aspect-square overflow-hidden mb-4">
+                        <Link to={`/product/${product.slug || generateSlug(product.name)}`} className="block aspect-square overflow-hidden mb-4">
                           <img 
                             src={product.image} 
                             alt={product.name} 

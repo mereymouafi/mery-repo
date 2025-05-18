@@ -17,6 +17,7 @@ export interface Product {
   made_in: string;
   sizes: string[] | null;
   created_at: string;
+  slug?: string; // Optional slug for URL-friendly version of the product name
 }
 
 /**
