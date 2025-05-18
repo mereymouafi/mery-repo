@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X } from 'lucide-react';
 import Logo from '../common/Logo';
 import { CartContext } from '../../context/CartContext';
+import MobileMenu from './MobileMenu';
 
 interface HeaderProps {
   scrolled: boolean;
@@ -85,45 +86,8 @@ const Header: React.FC<HeaderProps> = ({ scrolled, onOpenSearch }) => {
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
-      <div
-        className={`fixed inset-0 bg-white z-40 transform transition-transform duration-300 ${
-          menuOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:hidden`}
-      >
-        <div className="container h-full flex flex-col pt-20 pb-6">
-          <nav className="flex flex-col space-y-6 text-center text-xl font-serif">
-            <Link 
-              to="/" 
-              className="py-4 border-b border-gray-100 text-luxury-black text-2xl drop-shadow-[0_0_6px_rgba(255,255,255,0.9)] hover:text-luxury-gold hover:drop-shadow-[0_0_5px_rgba(0,0,0,0.7)] transition-all"
-              onClick={toggleMenu}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/shop" 
-              className="py-4 border-b border-gray-100 text-luxury-black text-2xl drop-shadow-[0_0_6px_rgba(255,255,255,0.9)] hover:text-luxury-gold hover:drop-shadow-[0_0_5px_rgba(0,0,0,0.7)] transition-all"
-              onClick={toggleMenu}
-            >
-              Shop
-            </Link>
-            <Link 
-              to="/about" 
-              className="py-4 border-b border-gray-100 text-luxury-black text-2xl drop-shadow-[0_0_6px_rgba(255,255,255,0.9)] hover:text-luxury-gold hover:drop-shadow-[0_0_5px_rgba(0,0,0,0.7)] transition-all"
-              onClick={toggleMenu}
-            >
-              About
-            </Link>
-            <Link 
-              to="/contact" 
-              className="py-4 border-b border-gray-100 text-luxury-black text-2xl drop-shadow-[0_0_6px_rgba(255,255,255,0.9)] hover:text-luxury-gold hover:drop-shadow-[0_0_5px_rgba(0,0,0,0.7)] transition-all"
-              onClick={toggleMenu}
-            >
-              Contact
-            </Link>
-          </nav>
-        </div>
-      </div>
+      {/* Luxurious Mobile Navigation Menu */}
+      <MobileMenu isOpen={menuOpen} onClose={toggleMenu} />
     </header>
   );
 };
