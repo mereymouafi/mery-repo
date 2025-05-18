@@ -172,359 +172,37 @@ const ShopPage: React.FC = () => {
     
     let result = [...products];
     
-    // Filter by category - COMPLETELY REVISED
+    // Simple category filtering
     if (filters.category !== 'all') {
-      console.log('Filtering by category slug:', filters.category);
-      console.log('All available categories:', dbCategories.map(c => ({ id: c.id, name: c.name, slug: c.slug })));
-      console.log('All products before filtering:', products.map(p => ({ id: p.id, name: p.name, category: p.category || 'null' })));
+      const selectedCategory = dbCategories.find(cat => cat.slug === filters.category);
       
-      // SPECIAL HANDLING FOR LOAFER CATEGORY - MUCH MORE PRECISE
-      if (filters.category === 'loafer') {
-        // Specific loafer keywords - more precise now
-        const loaferKeywords = [
-          'loafer', 'loafers', 'penny loafer', 'bit loafer', 'driving loafer'
-        ];
-        
-        // Keywords that specifically exclude a product from being a loafer
-        const exclusionKeywords = ['sneakers', 'triple stitch', 'running', 'athletic shoe'];
-        
-        console.log('Precise handling for Loafer category');
+      if (selectedCategory) {
+        // Simple direct match by category ID or name
         result = result.filter(product => {
-          // VERY PRECISE MATCHING FOR LOAFERS
+          if (!product.category) return false;
           
-          // Extract all relevant product text fields
-          const categoryValue = product.category ? String(product.category).toLowerCase() : '';
-          const nameValue = product.name ? product.name.toLowerCase() : '';
-          const descValue = product.description ? product.description.toLowerCase() : '';
-          
-          // Check if product is explicitly categorized as something else in the database
-          // This is a critical check to prevent incorrect categories from showing up
-          if (categoryValue === 'sneakers' || categoryValue.includes('sneaker')) {
-            console.log(`Product ${product.name} - Excluded because it's categorized as sneakers`);
-            return false;
-          }
-          
-          // Check product against exclusion keywords
-          for (const keyword of exclusionKeywords) {
-            if (nameValue.includes(keyword)) {
-              console.log(`Product ${product.name} - Excluded due to keyword: ${keyword}`);
-              return false;
-            }
-          }
-          
-          // 1. Direct category match
-          const directCategoryMatch = 
-            categoryValue === 'loafer' || 
-            categoryValue.includes('loafer');
-          
-          // 2. Category ID match - check if it matches any loafer category in the database
-          const loaferCategoryIds = dbCategories
-            .filter(cat => cat.name.toLowerCase() === 'loafer' || cat.slug === 'loafer')
-            .map(cat => cat.id);
-          const categoryIdMatch = loaferCategoryIds.some(id => String(product.category) === String(id));
-          
-          // 3. Name match - must explicitly contain "loafer" in the name
-          const nameMatch = loaferKeywords.some(keyword => nameValue.includes(keyword));
-          
-          // 4. Look for "walk loafer" specifically which is a common pattern
-          const walkLoaferMatch = nameValue.includes('walk loafer');
-          
-          // 5. Only check description if no other matches, and it must be explicit
-          const descriptionMatch = 
-            !directCategoryMatch && 
-            !categoryIdMatch && 
-            !nameMatch && 
-            loaferKeywords.some(keyword => descValue.includes(keyword)) &&
-            !exclusionKeywords.some(keyword => descValue.includes(keyword));
-          
-          // Log details for debugging
-          const isMatch = directCategoryMatch || categoryIdMatch || nameMatch || walkLoaferMatch || descriptionMatch;
-          console.log(`Product ${product.name} - Loafer match:`, {
-            categoryValue,
-            nameValue, 
-            directCategoryMatch,
-            categoryIdMatch,
-            nameMatch,
-            walkLoaferMatch,
-            descriptionMatch,
-            result: isMatch
-          });
-          
-          return isMatch;
-        });
-        
-        console.log(`Found ${result.length} products matching Loafer category with precise filtering`);
-      }
-      // Handle special cases for specific categories
-      else if (filters.category === 'moccasins' || filters.category === 'mocassins') {
-        // Special handling for Moccasins category
-        const moccasinsKeywords = ['moccasins', 'mocassin', 'mocassins', 'moccasin', 'driving shoe'];
-        
-        console.log('Special handling for Moccasins category');
-        result = result.filter(product => {
-          // First check the category field
-          if (product.category) {
-            // If category is already 'Moccasins', it matches
-            if (String(product.category).toLowerCase() === 'moccasins' || 
-                String(product.category).toLowerCase() === 'mocassins') {
-              return true;
-            }
-            
-            // Check if category contains any moccasins keywords
-            if (moccasinsKeywords.some(keyword => 
-              String(product.category).toLowerCase().includes(keyword.toLowerCase()))) {
-              return true;
-            }
-          }
-          
-          // Check if category is a category ID that matches a moccasins category
-          const moccasinsCategoryIds = dbCategories
-            .filter(cat => cat.name.toLowerCase().includes('moccasin') || cat.name.toLowerCase().includes('mocassin'))
-            .map(cat => cat.id);
-          
-          if (product.category && moccasinsCategoryIds.some(id => String(product.category) === String(id))) {
-            return true;
-          }
-          
-          // Then check the product name
-          if (product.name && moccasinsKeywords.some(keyword => 
-            product.name.toLowerCase().includes(keyword.toLowerCase()))) {
-            return true;
-          }
-          
-          // Check description as well
-          if (product.description && moccasinsKeywords.some(keyword => 
-            product.description.toLowerCase().includes(keyword.toLowerCase()))) {
-            return true;
-          }
-          
-          return false;
+          const productCategory = String(product.category).toLowerCase();
+          return productCategory === String(selectedCategory.id).toLowerCase() || 
+                 productCategory === selectedCategory.name.toLowerCase() ||
+                 productCategory.includes(selectedCategory.name.toLowerCase());
         });
       }
-      else if (filters.category === 'valises' || filters.category === 'valises-louis-vuitton') {
-        // Special handling for Valises category
-        const valiseKeywords = ['valise', 'horizon', 'suitcase', 'luggage'];
-        
-        console.log('Special handling for Valises category');
-        result = result.filter(product => {
-          // First check the category field (could be ID, name, or string)
-          if (product.category) {
-            // If category is already 'Valises', it matches
-            if (String(product.category).toLowerCase() === 'valises') {
-              return true;
-            }
-            
-            // Check if category contains any valise keywords
-            if (valiseKeywords.some(keyword => 
-              String(product.category).toLowerCase().includes(keyword.toLowerCase()))) {
-              return true;
-            }
-            
-            // Check if category matches any Valise category ID from dbCategories
-            if (product.category) {
-              const categoryIds = dbCategories
-                .filter(cat => cat.name.toLowerCase().includes('valise'))
-                .map(cat => cat.id);
-              
-              if (categoryIds.includes(product.category)) {
-                return true;
-              }
-            }
-          }
-          
-          // Then check the product name
-          if (product.name && valiseKeywords.some(keyword => 
-            product.name.toLowerCase().includes(keyword.toLowerCase()))) {
-            return true;
-          }
-          
-          // Check description as well
-          if (product.description && valiseKeywords.some(keyword => 
-            product.description.toLowerCase().includes(keyword.toLowerCase()))) {
-            return true;
-          }
-          
-          return false;
-        });
-      } 
-      // Special case for sneakers category
-      else if (filters.category === 'sneakers' || filters.category === 'footwear') {
-        // Use an array of keywords to match for footwear/sneakers
-        const footwearKeywords = ['sneakers', 'shoes', 'footwear', 'triple stitch', 'sneaker', 'shoe'];
-        
-        console.log('Special handling for footwear/sneakers category');
-        result = result.filter(product => {
-          // First check the category field
-          if (product.category && footwearKeywords.some(keyword => 
-            String(product.category).toLowerCase().includes(keyword.toLowerCase()))) {
-            return true;
-          }
-          
-          // Then check the product name
-          if (product.name && footwearKeywords.some(keyword => 
-            product.name.toLowerCase().includes(keyword.toLowerCase()))) {
-            return true;
-          }
-          
-          // Check description as well
-          if (product.description && footwearKeywords.some(keyword => 
-            product.description.toLowerCase().includes(keyword.toLowerCase()))) {
-            return true;
-          }
-          
-          return false;
-        });
-      } else {
-        // For other categories, try multiple strategies
-        console.log('Looking for category with slug:', filters.category);
-        const selectedCategory = dbCategories.find(cat => cat.slug === filters.category);
-        console.log('Selected category from database:', selectedCategory);
-        
-        // Log all products' categories for debugging
-        console.log('All product categories:', products.map(p => ({ id: p.id, name: p.name, category: p.category })));
-        
-        if (selectedCategory) {
-          // Try matching by category ID first (could be stored in category or category_id field)
-          console.log('Matching by category ID');
-          console.log('Trying to match products with category ID:', selectedCategory.id);
-          const filteredById = result.filter(product => {
-            const matches = product.category && String(product.category) === String(selectedCategory.id);
-            console.log(`Product ${product.id} (${product.name}) - category: ${product.category} - matches: ${matches}`);
-            return matches;
-          });
-          
-          if (filteredById.length > 0) {
-            result = filteredById;
-          } else {
-            // Try matching by category name
-            console.log('Matching by category name:', selectedCategory.name);
-            result = result.filter(product => {
-              const matchesExact = product.category && String(product.category).toLowerCase() === String(selectedCategory.name).toLowerCase();
-              const matchesPartial = product.category && String(product.category).toLowerCase().includes(String(selectedCategory.name).toLowerCase());
-              console.log(`Product ${product.id} (${product.name}) - category: ${product.category} - exact match: ${matchesExact}, partial match: ${matchesPartial}`);
-              return matchesExact || matchesPartial;
-            });
-          }
-        } else {
-          // Try matching by formatted name from slug
-          const categoryName = filters.category
-            .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-          
-          console.log('Matching by formatted slug name:', categoryName);
-          result = result.filter(product => {
-            const matches = product.category && String(product.category).toLowerCase().includes(categoryName.toLowerCase());
-            console.log(`Product ${product.id} (${product.name}) - category: ${product.category} - matches by name: ${matches}`);
-            return matches;
-          });
-        }
-      }
-      
-      console.log('Filtered products:', result.map(p => ({ id: p.id, name: p.name, category: p.category })));
     }
     
-    // Filter by brand - COMPLETELY REVISED
+    // Simple brand filtering
     if (filters.brand !== 'all') {
-      console.log('Attempting to filter by brand slug:', filters.brand);
-      console.log('Available brands:', dbBrands);
-      
-      // Find the brand by slug
       const selectedBrand = dbBrands.find(b => b.slug === filters.brand);
       
       if (selectedBrand) {
-        console.log('Selected brand found:', selectedBrand);
-        
-        // Debug all products and their brand values
-        console.log('All products with their brand values before filtering:');
-        products.forEach(p => console.log(`Product: ${p.name}, Brand: ${p.brand}, Type: ${typeof p.brand}`));
-        
-        // Comprehensive brand matching that handles all scenarios
-        result = result.filter(product => {
-          // Skip products with no brand
-          if (product.brand === null || product.brand === undefined) {
-            return false;
-          }
-          
-          // Convert to string for consistent comparison
-          const productBrand = String(product.brand);
-          
-          // 1. Direct ID match (most common in admin-created products)
-          const idMatch = productBrand === selectedBrand.id;
-          
-          // 2. Name match - important for legacy data
-          const nameMatch = productBrand.toLowerCase() === selectedBrand.name.toLowerCase();
-          
-          // 3. Slug match
-          const slugMatch = productBrand === selectedBrand.slug;
-          
-          // 4. Contained match (brand ID in a list or brand name in another field)
-          const containedMatch = 
-            // Check if product brand might contain the brand ID
-            productBrand.includes(selectedBrand.id) ||
-            // Check if product brand might contain the brand name
-            productBrand.toLowerCase().includes(selectedBrand.name.toLowerCase()) ||
-            // Check if product brand might contain the brand slug
-            productBrand.toLowerCase().includes(selectedBrand.slug.toLowerCase());
-          
-          // Debug matching results for this product
-          const matchResult = idMatch || nameMatch || slugMatch || containedMatch;
-          console.log(`Product ${product.name} - Brand match?`, {
-            productBrand,
-            selectedBrandId: selectedBrand.id,
-            selectedBrandName: selectedBrand.name,
-            idMatch, nameMatch, slugMatch, containedMatch,
-            result: matchResult
-          });
-          
-          return matchResult;
-        });
-        
-        // Log filtered results
-        console.log(`Found ${result.length} products matching brand ${selectedBrand.name}`);
-      } else {
-        // Brand not found in database, use string-based matching as fallback
-        console.log('Brand not found in database, using fallback filtering');
-        
-        // Convert slug to probable name format
-        const brandNameFromSlug = filters.brand
-          .split('-')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
-          
-        console.log('Attempting fallback matching with derived brand name:', brandNameFromSlug);
-        
-        // Flexible string matching as fallback
+        // Simple direct match by brand ID or name
         result = result.filter(product => {
           if (!product.brand) return false;
           
           const productBrand = String(product.brand).toLowerCase();
-          const brandSlug = filters.brand.toLowerCase();
-          const brandNameLower = brandNameFromSlug.toLowerCase();
-          
-          // Try multiple matching strategies
-          const exactMatch = productBrand === brandSlug;
-          const nameMatch = productBrand === brandNameLower;
-          const containsMatch = 
-            productBrand.includes(brandSlug) || 
-            productBrand.includes(brandNameLower);
-            
-          // Debug this fallback matching
-          const matchResult = exactMatch || nameMatch || containsMatch;
-          console.log(`Fallback matching for ${product.name}:`, {
-            productBrand,
-            brandSlug,
-            brandNameLower,
-            exactMatch,
-            nameMatch,
-            containsMatch,
-            result: matchResult
-          });
-          
-          return matchResult;
+          return productBrand === String(selectedBrand.id).toLowerCase() || 
+                 productBrand === selectedBrand.name.toLowerCase() ||
+                 productBrand.includes(selectedBrand.name.toLowerCase());
         });
-        
-        console.log(`Fallback filtering found ${result.length} products`);
       }
     }
     
