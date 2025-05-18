@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { ArrowRight } from 'lucide-react';
 import { getBrands, Brand } from '../lib/brandService';
 import { getCategories, Category } from '../lib/categoryService';
 import { getLatestProducts, Product as SupabaseProduct } from '../lib/productService';
-import luxuryVideo from '../ressources/1722697-uhd_3840_2160_25fps.mp4';
+
+// Import images for luxury slideshow
+import slide1 from '../ressources/test/test0.png';
+import slide2 from '../ressources/test/test3.png';
+import slide3 from '../ressources/test/test6.png';
+import slide4 from '../ressources/test/test7.png';
+import slide5 from '../ressources/test/test9.png';
+import slide6 from '../ressources/test/test12.png';
+import slide7 from '../ressources/test/test4.jpeg';
+import slide8 from '../ressources/test/test.jpeg';
 
 // Function to generate a slug from a product name
 const generateSlug = (name: string): string => {
@@ -14,6 +23,106 @@ const generateSlug = (name: string): string => {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+};
+
+// Luxury Slideshow Component
+const LuxurySlideshow: React.FC = () => {
+  const slides = [
+    {
+      image: slide1,
+      alt: 'Luxury menswear - premium fabrics against Moroccan-inspired backdrop'
+    },
+    {
+      image: slide2,
+      alt: 'Elegant male model in premium wool attire with soft golden lighting'
+    },
+    {
+      image: slide3,
+      alt: 'Close-up of luxury leather loafers with artisanal craftsmanship'
+    },
+    {
+      image: slide4,
+      alt: 'Tailored cashmere coat with minimalist high-end fashion aesthetic'
+    },
+    {
+      image: slide5,
+      alt: 'Modern luxury menswear with Moroccan design elements'
+    },
+    {
+      image: slide6,
+      alt: 'Premium suede jacket detail with warm earth tones'
+    },
+    {
+      image: slide7,
+      alt: 'Refined tailoring with mosaic-inspired patterns'
+    },
+    {
+      image: slide8,
+      alt: 'Luxury lifestyle with arched architectural details'
+    }
+  ];
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to reset the slideshow timer
+  const resetTimeout = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  };
+
+  // Effect to handle the slideshow timing
+  useEffect(() => {
+    resetTimeout();
+    timeoutRef.current = setTimeout(() => {
+      setCurrentIndex((prevIndex) => (prevIndex === slides.length - 1 ? 0 : prevIndex + 1));
+    }, 6000); // Change slide every 6 seconds for cinematic feel
+
+    return () => {
+      resetTimeout(); // Clear timeout when component unmounts
+    };
+  }, [currentIndex, slides.length]);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden">
+      {/* Golden overlay for warm lighting effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-luxury-gold/10 to-transparent opacity-40 z-10 pointer-events-none mix-blend-overlay"></div>
+      
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 2, ease: "easeInOut" }} // Slow transition for cinematic feel
+          className="absolute inset-0"
+        >
+          <img 
+            src={slides[currentIndex].image} 
+            alt={slides[currentIndex].alt}
+            className="w-full h-full object-cover transform scale-[1.01] filter brightness-[0.95] contrast-[1.05]" // Slight zoom and filter for cinematic quality
+            style={{ 
+              transition: 'transform 8s ease-out', // Slow-motion zoom effect
+              transform: 'scale(1.05)' 
+            }}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Subtle progress indicators */}
+      <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center gap-2">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            className={`w-12 h-[2px] ${index === currentIndex ? 'bg-luxury-gold' : 'bg-white/40'} transition-all duration-500`}
+            onClick={() => setCurrentIndex(index)}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
 };
 
 // Brands Display Component
@@ -249,20 +358,11 @@ const HomePage: React.FC = () => {
         <meta name="description" content="Discover the finest luxury goods at Luxe Maroc. Elegant designs, exceptional quality, worldwide shipping." />
       </Helmet>
 
-      {/* Hero Section */}
+      {/* Hero Section with Luxury Slideshow */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <video 
-            autoPlay 
-            muted 
-            loop 
-            playsInline
-            className="w-full h-full object-cover"
-            src={luxuryVideo}
-          >
-            Your browser does not support the video tag.
-          </video>
-          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <LuxurySlideshow />
+          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
         </div>
         
         <div className="container relative z-10 text-center">
