@@ -22,6 +22,7 @@ interface Product {
   made_in: string;
   sizes: string[] | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface Category {
@@ -61,6 +62,10 @@ const ProductsAdminPage: React.FC = () => {
   
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Edit mode state
+  const [editMode, setEditMode] = useState(false);
+  const [editProductId, setEditProductId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -177,28 +182,43 @@ const ProductsAdminPage: React.FC = () => {
       
       const sizesArray = sizes ? parseSizes(sizes) : null;
 
-      // Insert new product
-      const { error } = await supabase
-        .from('products')
-        .insert([
-          {
-            name,
-            description,
-            price: parseFloat(price),
-            category_id: categoryId,
-            brand: brand || null,
-            image,
-            images: imagesArray.length > 0 ? imagesArray : null,
-            is_new: isNew,
-            is_best_seller: isBestSeller,
-            color,
-            dimensions,
-            material,
-            made_in: madeIn,
-            sizes: sizesArray,
-          }
-        ])
-        .select();
+      // Prepare product data
+      const productData = {
+        name,
+        description,
+        price: parseFloat(price),
+        category_id: categoryId,
+        brand: brand || null,
+        image,
+        images: imagesArray.length > 0 ? imagesArray : null,
+        is_new: isNew,
+        is_best_seller: isBestSeller,
+        color,
+        dimensions,
+        material,
+        made_in: madeIn,
+        sizes: sizesArray,
+      };
+
+      let error;
+
+      if (editMode && editProductId) {
+        // Update existing product
+        const { error: updateError } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editProductId);
+        
+        error = updateError;
+      } else {
+        // Insert new product
+        const { error: insertError } = await supabase
+          .from('products')
+          .insert([productData])
+          .select();
+        
+        error = insertError;
+      }
 
       if (error) {
         throw error;
@@ -220,11 +240,21 @@ const ProductsAdminPage: React.FC = () => {
       setMadeIn('');
       setSizes('');
       
-      setSuccessMessage('Product added successfully!');
+      // Reset edit mode
+      if (editMode) {
+        setEditMode(false);
+        setEditProductId(null);
+        setSuccessMessage('Product updated successfully!');
+      } else {
+        setSuccessMessage('Product added successfully!');
+      }
+
       setError(null);
+      // Refresh products list
+      fetchProducts();
     } catch (err: any) {
-      console.error('Error adding product:', err);
-      setError(err.message || 'Failed to add product');
+      console.error(editMode ? 'Error updating product:' : 'Error adding product:', err);
+      setError(err.message || (editMode ? 'Failed to update product' : 'Failed to add product'));
     } finally {
       setSubmitting(false);
     }
@@ -258,6 +288,53 @@ const ProductsAdminPage: React.FC = () => {
       console.error('Error deleting product:', err);
       setError(err.message || 'Failed to delete product');
     }
+  };
+
+  const handleEdit = (product: Product) => {
+    // Set form fields with product data
+    setName(product.name);
+    setDescription(product.description);
+    setPrice(product.price.toString());
+    setCategoryId(product.category_id);
+    setBrand(product.brand || '');
+    setImage(product.image);
+    setAdditionalImages(product.images ? product.images.filter(img => img !== product.image).join(', ') : '');
+    setIsNew(product.is_new || false);
+    setIsBestSeller(product.is_best_seller || false);
+    setColor(product.color);
+    setDimensions(product.dimensions);
+    setMaterial(product.material);
+    setMadeIn(product.made_in);
+    setSizes(product.sizes ? product.sizes.join(', ') : '');
+    
+    // Set edit mode
+    setEditMode(true);
+    setEditProductId(product.id);
+    
+    // Scroll to the form
+    document.getElementById('product-form')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    // Reset form
+    setName('');
+    setDescription('');
+    setPrice('');
+    setCategoryId('');
+    setBrand('');
+    setImage('');
+    setAdditionalImages('');
+    setIsNew(false);
+    setIsBestSeller(false);
+    setColor('');
+    setDimensions('');
+    setMaterial('');
+    setMadeIn('');
+    setSizes('');
+    
+    // Reset edit mode
+    setEditMode(false);
+    setEditProductId(null);
   };
 
   const getCategoryName = (categoryId: string): string => {
@@ -389,8 +466,8 @@ const ProductsAdminPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Add Product Form */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Add New Product</h2>
+        <div className="bg-white shadow-md rounded-lg p-6" id="product-form">
+          <h2 className="text-xl font-semibold mb-4">{editMode ? 'Update Product' : 'Add New Product'}</h2>
           
           {error && (
             <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
@@ -631,13 +708,22 @@ const ProductsAdminPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-2">
+              {editMode && (
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={submitting}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50"
               >
-                {submitting ? 'Adding...' : 'Add Product'}
+                {submitting ? (editMode ? 'Updating...' : 'Adding...') : (editMode ? 'Update Product' : 'Add Product')}
               </button>
             </div>
           </form>
@@ -719,6 +805,12 @@ const ProductsAdminPage: React.FC = () => {
                         {getCategoryName(product.category_id)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleEdit(product)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-2"
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={() => handleDelete(product.id)}
                           className="text-red-600 hover:text-red-900 ml-2"
