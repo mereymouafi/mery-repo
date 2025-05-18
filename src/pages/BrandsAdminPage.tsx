@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Brand } from '../lib/brandService';
+import { FiEdit2, FiTrash2, FiSave, FiX } from 'react-icons/fi';
 
 const BrandsAdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,10 @@ const BrandsAdminPage: React.FC = () => {
   const [image, setImage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Edit state
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchBrands();
@@ -36,10 +41,12 @@ const BrandsAdminPage: React.FC = () => {
     };
   }, []);
 
-  // Auto-generate slug from name
+  // Auto-generate slug from name (only if not editing an existing brand)
   useEffect(() => {
-    setSlug(name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-  }, [name]);
+    if (!isEditing) {
+      setSlug(name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+    }
+  }, [name, isEditing]);
 
   const fetchBrands = async () => {
     setLoading(true);
@@ -63,6 +70,34 @@ const BrandsAdminPage: React.FC = () => {
     }
   };
 
+  const handleEditClick = (brand: Brand) => {
+    setIsEditing(true);
+    setEditingBrand(brand);
+    setName(brand.name);
+    setSlug(brand.slug);
+    setDescription(brand.description || '');
+    setImage(brand.image || '');
+    setError(null);
+    setSuccessMessage('');
+    
+    // Smooth scroll to form
+    document.getElementById('brand-form')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingBrand(null);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setName('');
+    setSlug('');
+    setDescription('');
+    setImage('');
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -70,60 +105,101 @@ const BrandsAdminPage: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Submitting brand:', { name, slug, description, image });
-      
-      // Check if slug already exists
-      const { data: existingBrand, error: checkError } = await supabase
-        .from('brands')
-        .select('id')
-        .eq('slug', slug)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking for existing brand:', checkError);
-        throw new Error(`Database error while checking slug: ${checkError.message}`);
-      }
-
-      if (existingBrand) {
-        setError('A brand with this slug already exists');
-        return;
-      }
-
       // Get current timestamp for created_at and updated_at
       const now = new Date().toISOString();
+      
+      if (isEditing && editingBrand) {
+        // Handle update
+        console.log('Updating brand:', { id: editingBrand.id, name, slug, description, image });
 
-      // Insert new brand
-      const { error: insertError } = await supabase
-        .from('brands')
-        .insert([
-          {
+        // Check if slug already exists (but ignore the current brand)
+        const { data: existingBrand, error: checkError } = await supabase
+          .from('brands')
+          .select('id')
+          .eq('slug', slug)
+          .neq('id', editingBrand.id)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error('Error checking for existing brand:', checkError);
+          throw new Error(`Database error while checking slug: ${checkError.message}`);
+        }
+
+        if (existingBrand) {
+          setError('A brand with this slug already exists');
+          return;
+        }
+
+        // Update existing brand
+        const { error: updateError } = await supabase
+          .from('brands')
+          .update({
             name,
             slug,
             description: description || null,
             image: image || null,
-            created_at: now,
             updated_at: now
-          }
-        ])
-        .select();
+          })
+          .eq('id', editingBrand.id);
 
-      if (insertError) {
-        console.error('Supabase insert error:', insertError);
-        throw new Error(`Failed to add brand: ${insertError.message}`);
+        if (updateError) {
+          console.error('Supabase update error:', updateError);
+          throw new Error(`Failed to update brand: ${updateError.message}`);
+        }
+
+        setSuccessMessage('Brand updated successfully!');
+        setIsEditing(false);
+        setEditingBrand(null);
+      } else {
+        // Handle new brand creation
+        console.log('Creating new brand:', { name, slug, description, image });
+        
+        // Check if slug already exists
+        const { data: existingBrand, error: checkError } = await supabase
+          .from('brands')
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error('Error checking for existing brand:', checkError);
+          throw new Error(`Database error while checking slug: ${checkError.message}`);
+        }
+
+        if (existingBrand) {
+          setError('A brand with this slug already exists');
+          return;
+        }
+
+        // Insert new brand
+        const { error: insertError } = await supabase
+          .from('brands')
+          .insert([
+            {
+              name,
+              slug,
+              description: description || null,
+              image: image || null,
+              created_at: now,
+              updated_at: now
+            }
+          ])
+          .select();
+
+        if (insertError) {
+          console.error('Supabase insert error:', insertError);
+          throw new Error(`Failed to add brand: ${insertError.message}`);
+        }
+
+        setSuccessMessage('Brand added successfully!');
       }
-
-      // Reset form
-      setName('');
-      setSlug('');
-      setDescription('');
-      setImage('');
-      setSuccessMessage('Brand added successfully!');
       
-      // Refresh the brand list
+      // Reset form and refresh brand list
+      resetForm();
       fetchBrands();
     } catch (err: any) {
-      console.error('Error adding brand:', err);
-      setError(err.message || 'Failed to add brand');
+      console.error('Error saving brand:', err);
+      setError(err.message || 'Failed to save brand');
     } finally {
       setSubmitting(false);
     }
@@ -201,8 +277,17 @@ const BrandsAdminPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Brand Form */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Add New Brand</h2>
+        <div id="brand-form" className="bg-white shadow-md rounded-lg p-6 border-t-4 border-amber-400">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            {isEditing ? (
+              <>
+                <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Update Brand:</span> 
+                <span className="ml-2">{editingBrand?.name}</span>
+              </>
+            ) : (
+              <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Add New Brand</span>
+            )}
+          </h2>
           
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
@@ -231,7 +316,7 @@ const BrandsAdminPage: React.FC = () => {
                 onChange={(e) => setSlug(e.target.value)}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100"
                 placeholder="brand-slug"
-                readOnly
+                readOnly={!isEditing}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Auto-generated from name. Used in URLs.
@@ -278,21 +363,40 @@ const BrandsAdminPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-3">
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out hover:bg-gray-100 flex items-center"
+                >
+                  <FiX className="mr-2" /> Cancel
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50"
+                className={`${isEditing ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800'} text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50 flex items-center shadow-md`}
               >
-                {submitting ? 'Adding...' : 'Add Brand'}
+                {submitting ? (
+                  isEditing ? 'Updating...' : 'Adding...'
+                ) : (
+                  <>
+                    {isEditing ? (
+                      <><FiSave className="mr-2" /> Update Brand</>
+                    ) : (
+                      'Add Brand'
+                    )}
+                  </>
+                )}
               </button>
             </div>
           </form>
         </div>
 
         {/* Brands List */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Existing Brands</h2>
+        <div className="bg-white shadow-md rounded-lg p-6 border-t-4 border-amber-400">
+          <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Existing Brands</h2>
           
           {loading ? (
             <p className="text-gray-500">Loading brands...</p>
@@ -300,8 +404,8 @@ const BrandsAdminPage: React.FC = () => {
             <p className="text-gray-500">No brands found</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 border border-gray-100 shadow-sm">
+                <thead className="bg-gradient-to-r from-amber-50 to-amber-100">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Name
@@ -317,7 +421,7 @@ const BrandsAdminPage: React.FC = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200 text-gray-800">
                   {brands.map((brand) => (
                     <tr key={brand.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -348,12 +452,20 @@ const BrandsAdminPage: React.FC = () => {
                           View Products
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <button
+                          onClick={() => handleEditClick(brand)}
+                          className="text-amber-600 hover:text-amber-900 inline-flex items-center transition-colors"
+                          title="Edit Brand"
+                        >
+                          <FiEdit2 className="mr-1" /> Edit
+                        </button>
                         <button
                           onClick={() => handleDelete(brand.id)}
-                          className="text-red-600 hover:text-red-900 ml-2"
+                          className="text-red-600 hover:text-red-900 inline-flex items-center transition-colors"
+                          title="Delete Brand"
                         >
-                          Delete
+                          <FiTrash2 className="mr-1" /> Delete
                         </button>
                       </td>
                     </tr>
