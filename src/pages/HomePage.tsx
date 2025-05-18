@@ -7,15 +7,15 @@ import { getBrands, Brand } from '../lib/brandService';
 import { getCategories, Category } from '../lib/categoryService';
 import { getLatestProducts, Product as SupabaseProduct } from '../lib/productService';
 
-// Import images for luxury slideshow
-import slide1 from '../ressources/test/test0.png';
-import slide2 from '../ressources/test/test3.png';
-import slide3 from '../ressources/test/test6.png';
-import slide4 from '../ressources/test/test7.png';
-import slide5 from '../ressources/test/test9.png';
-import slide6 from '../ressources/test/test12.png';
-import slide7 from '../ressources/test/test4.jpeg';
-import slide8 from '../ressources/test/test.jpeg';
+// Import images for luxury slideshow using dynamic import.meta.url for better Vercel compatibility
+const slide1 = new URL('../ressources/test/test0.png', import.meta.url).href;
+const slide2 = new URL('../ressources/test/test3.png', import.meta.url).href;
+const slide3 = new URL('../ressources/test/test6.png', import.meta.url).href;
+const slide4 = new URL('../ressources/test/test7.png', import.meta.url).href;
+const slide5 = new URL('../ressources/test/test9.png', import.meta.url).href;
+const slide6 = new URL('../ressources/test/test12.png', import.meta.url).href;
+const slide7 = new URL('../ressources/test/test4.jpeg', import.meta.url).href;
+const slide8 = new URL('../ressources/test/test.jpeg', import.meta.url).href;
 
 // Function to generate a slug from a product name
 const generateSlug = (name: string): string => {
