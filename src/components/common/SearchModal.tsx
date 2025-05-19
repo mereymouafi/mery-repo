@@ -141,10 +141,59 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     }
   };
   
+  // Generate a URL-friendly slug from a product name
+  const generateSlug = (name: string) => {
+    if (!name) return '';
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
+  };
+
   // Handle suggestion click for products
-  const handleProductSuggestionClick = (productId: string, productName: string) => {
+  const handleProductSuggestionClick = async (productId: string, productName: string) => {
     setSearchQuery(productName);
-    navigate(`/product/${productId}`);
+    
+    // Try to get the product slug
+    try {
+      const { data: product, error } = await supabase
+        .from('products')
+        .select('slug, name')
+        .eq('id', productId)
+        .single();
+      
+      if (error) throw error;
+      
+      // Use slug if available, otherwise generate one from the name
+      let slug = product?.slug;
+      
+      // If no slug found, generate one
+      if (!slug) {
+        // Use the product name from the database if available, otherwise use the provided name
+        const nameToUse = product?.name || productName;
+        slug = generateSlug(nameToUse);
+        
+        // Update the slug in the database for future use
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ slug })
+          .eq('id', productId);
+          
+        if (updateError) {
+          console.error('Error updating product slug:', updateError);
+        }
+      }
+      
+      // Navigate to the product page
+      navigate(`/product/${slug}`);
+    } catch (error) {
+      console.error('Error handling product suggestion click:', error);
+      // Fallback to using the generated slug
+      const fallbackSlug = generateSlug(productName);
+      navigate(`/product/${fallbackSlug}`);
+    }
+    
     onClose();
   };
   
@@ -487,7 +536,15 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
                         <div
                           key={`${result.type}-${result.id}`}
                           className="group product-card-hover cursor-pointer"
-                          onClick={() => handleResultClick(result)}
+                          onClick={() => {
+                            if (result.type === 'product') {
+                              handleProductSuggestionClick(result.id, result.name);
+                            } else if (result.type === 'brand') {
+                              handleBrandSuggestionClick(result.slug || result.id, result.name);
+                            } else if (result.type === 'category') {
+                              handleCategorySuggestionClick(result.slug || result.id, result.name);
+                            }
+                          }}
                         >
                           <div className="relative">
                             {/* Product image */}

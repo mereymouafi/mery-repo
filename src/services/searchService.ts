@@ -22,7 +22,7 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
     // Search products
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, name, description, image, price')
+      .select('id, name, description, image, price, slug')
       .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
       .limit(10);
 
@@ -37,6 +37,7 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
           image: product.image,
           price: product.price,
           type: 'product' as const,
+          slug: product.slug,
         }))
       );
     }
@@ -91,6 +92,16 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
     return [];
   }
 }
+
+// Generate a URL-friendly slug from a product name
+const generateSlug = (name: string) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
+};
 
 export async function searchProducts(query: string): Promise<SearchResult[]> {
   if (!query || query.trim() === '') {

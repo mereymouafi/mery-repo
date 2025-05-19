@@ -51,10 +51,12 @@ const ProductDetailPage: React.FC = () => {
 
   // Generate a URL-friendly slug from the product name
   const generateSlug = (name: string) => {
+    if (!name) return '';
     return name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(/(^-|-$)/g, '')
+      .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
   };
 
   // Get cart context
@@ -70,110 +72,129 @@ const ProductDetailPage: React.FC = () => {
       setError(null);
 
       try {
-        // Start with a basic query
+        console.log('Fetching product with slug:', slug, 'or id:', id);
+        
+        // SIMPLER APPROACH: Get all products and find the matching one
+        // This is more reliable than complex querying when dealing with slugs
+        const { data: allProducts, error: listError } = await supabase
+          .from('products')
+          .select('*');
+        
+        if (listError) {
+          console.error('Error fetching products:', listError);
+          throw new Error('Failed to load products');
+        }
+        
+        if (!allProducts || allProducts.length === 0) {
+          console.error('No products found in database');
+          throw new Error('No products available');
+        }
+        
+        console.log(`Found ${allProducts.length} products, searching for match...`);
+        
+        // Find the product by ID or slug
         let productData = null;
-
-        // APPROACH 1: If we have an ID, use that first (backward compatibility)
+        
+        // First try to find by ID if provided
         if (id) {
-          const isNumeric = /^\d+$/.test(id);
-          let query = supabase.from('products').select('*');
-          
-          if (isNumeric) {
-            query = query.eq('id', parseInt(id));
-          } else {
-            query = query.eq('id', id);
-          }
-          
-          const { data, error } = await query.single();
-          
-          if (error) {
-            console.error('Error fetching product by ID:', error);
-          } else if (data) {
-            productData = data;
-            console.log('Found product by ID:', data.name);
+          productData = allProducts.find(p => p.id === id);
+          if (productData) {
+            console.log('Found product by ID:', productData.name);
           }
         }
         
-        // APPROACH 2: If we have a slug OR if ID search failed, try slug-based search
-        if ((!productData && slug) || (slug && !id)) {
-          console.log('Trying to find product by slug:', slug);
-          
-          // Get all products 
-          const { data: allProducts, error: listError } = await supabase
-            .from('products')
-            .select('*');
-          
-          if (listError) {
-            console.error('Error fetching products:', listError);
-          } else if (allProducts && allProducts.length > 0) {
-            console.log(`Found ${allProducts.length} products, searching for match...`);
+        // If not found by ID and slug is provided, try to find by exact slug match
+        if (!productData && slug) {
+          productData = allProducts.find(p => p.slug === slug);
+          if (productData) {
+            console.log('Found product by exact slug match:', productData.name);
+          }
+        }
+        
+        // If still not found and slug is provided, try to find by generated slug from name
+        if (!productData && slug) {
+          productData = allProducts.find(p => generateSlug(p.name) === slug);
+          if (productData) {
+            console.log('Found product by generated slug from name:', productData.name);
             
-            // First try: exact slug match
-            const exactSlugMatch = allProducts.find(product => {
-              // Check for an exact match on the slug field first
-              if (product.slug && product.slug.toLowerCase() === slug.toLowerCase()) {
-                return true;
-              }
+            // Update the product's slug in the database for future use
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({ slug: slug })
+              .eq('id', productData.id);
               
-              // Also check if the slug we would generate from the name matches
-              const generatedSlug = generateSlug(product.name);
-              return generatedSlug === slug;
+            if (updateError) {
+              console.error('Error updating product slug:', updateError);
+            } else {
+              console.log('Updated product with proper slug');
+            }
+          }
+        }
+        
+        // If still not found and slug is provided, try fuzzy matching
+        if (!productData && slug) {
+          // Score products by name similarity to the slug
+          const scoredProducts = allProducts.map(product => {
+            if (!product.name) return { product, score: 0 };
+            
+            const productName = product.name.toLowerCase();
+            const searchTerms = slug.split('-').filter(term => term.length >= 2);
+            
+            // Calculate a score based on how many terms match
+            let score = 0;
+            searchTerms.forEach(term => {
+              if (productName.includes(term.toLowerCase())) {
+                score += 10;
+              }
             });
             
-            if (exactSlugMatch) {
-              console.log('Found exact slug match:', exactSlugMatch.name);
-              productData = exactSlugMatch;
+            return { product, score };
+          });
+          
+          // Sort by score and take the highest
+          const sortedProducts = scoredProducts
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score);
+          
+          if (sortedProducts.length > 0) {
+            productData = sortedProducts[0].product;
+            console.log('Found product by fuzzy match:', productData.name, 'with score', sortedProducts[0].score);
+            
+            // Generate a slug for this product
+            const generatedSlug = generateSlug(productData.name);
+            
+            // Update the product's slug in the database
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({ slug: generatedSlug })
+              .eq('id', productData.id);
+              
+            if (updateError) {
+              console.error('Error updating product slug:', updateError);
             } else {
-              // If exact match fails, score products by relevance to the slug
-              const scoredMatches = allProducts
-                .map(product => {
-                  if (!product.name) return { product, score: 0 };
-                  
-                  const productName = product.name.toLowerCase();
-                  const searchTerms = slug.split('-').filter(term => term.length >= 3);
-                  
-                  // Calculate a score based on how many terms match and their position in the name
-                  let score = 0;
-                  searchTerms.forEach(term => {
-                    if (productName.includes(term.toLowerCase())) {
-                      // Terms appearing earlier in the name get higher scores
-                      const position = productName.indexOf(term.toLowerCase());
-                      score += 10 - (position / productName.length) * 5;
-                    }
-                  });
-                  
-                  // Boost score for products with matching category terms in the slug
-                  if (product.category && typeof product.category === 'string' && 
-                      slug.includes(product.category.toLowerCase())) {
-                    score += 5;
-                  }
-                  
-                  return { product, score };
-                })
-                .filter(item => item.score > 0) // Only keep products with some match
-                .sort((a, b) => b.score - a.score); // Sort by descending score
-              
-              console.log('Scored matches:', scoredMatches.map(m => ({ name: m.product.name, score: m.score })));
-              
-              if (scoredMatches.length > 0) {
-                productData = scoredMatches[0].product;
-                console.log('Best match by score:', productData.name, 'with score', scoredMatches[0].score);
-              }
+              console.log('Updated product with generated slug');
+              // Redirect to the correct slug URL
+              navigate(`/product/${generatedSlug}`, { replace: true });
+              return;
             }
           }
         }
         
         // If we found a product through any approach, process it
         if (productData) {
+          console.log('Processing found product:', productData.name);
+          
           // Process images (convert from string to array if needed)
           let images = productData.images;
           if (typeof images === 'string') {
             try {
               images = JSON.parse(images);
             } catch (e) {
+              console.log('Error parsing images JSON, using default image');
               images = [productData.image]; 
             }
           } else if (!images || !images.length) {
+            console.log('No images array found, using default image');
             images = [productData.image];
           }
 
@@ -183,21 +204,42 @@ const ProductDetailPage: React.FC = () => {
             try {
               sizes = JSON.parse(sizes);
             } catch (e) {
+              console.log('Error parsing sizes JSON, trying comma split');
               if (sizes) {
                 sizes = sizes.split(',').map((size: string) => size.trim());
               } else {
                 sizes = [];
               }
             }
+          } else if (!sizes) {
+            sizes = [];
           }
           
           // Generate slug if product doesn't have one
           const productSlug = productData.slug || generateSlug(productData.name);
+          console.log('Using product slug:', productSlug);
           
           // If we're accessing via ID but we have a slug, redirect to the slug URL
           if (id && !slug && productSlug) {
+            console.log('Redirecting from ID to slug URL');
             navigate(`/product/${productSlug}`, { replace: true });
             return;
+          }
+          
+          // If we don't have a slug in the database, update it
+          if (!productData.slug && productSlug) {
+            console.log('Updating product with new slug in database');
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({ slug: productSlug })
+              .eq('id', productData.id);
+              
+            if (updateError) {
+              console.error('Error updating product slug:', updateError);
+            } else {
+              console.log('Successfully updated product with generated slug:', productSlug);
+              productData.slug = productSlug;
+            }
           }
 
           // Create the final processed product
@@ -208,15 +250,17 @@ const ProductDetailPage: React.FC = () => {
             slug: productSlug
           };
 
+          console.log('Setting processed product:', processedProduct.name);
           setProduct(processedProduct);
           document.title = `${productData.name} | Luxe Maroc`;
           
-          // Fetch related products from the same category directly without depending on product state
+          // Fetch related products from the same category
           try {
             setLoadingRelated(true);
             setRelatedError(null);
             
             // Get related products from the same category, excluding current product
+            console.log('Fetching related products for category:', productData.category_id);
             getRelatedProducts(productData.category_id, productData.id)
               .then(({ data, error }) => {
                 if (error) {
@@ -226,6 +270,7 @@ const ProductDetailPage: React.FC = () => {
                 }
                 
                 if (data && data.length > 0) {
+                  console.log(`Found ${data.length} related products`);
                   // Process related products to ensure proper format
                   const processedRelated = data.map(relatedProduct => {
                     // Process images
@@ -243,6 +288,17 @@ const ProductDetailPage: React.FC = () => {
                     // Generate slug if not present
                     const slug = relatedProduct.slug || generateSlug(relatedProduct.name);
                     
+                    // Update slug in database if not present (don't wait for completion)
+                    if (!relatedProduct.slug) {
+                      supabase
+                        .from('products')
+                        .update({ slug })
+                        .eq('id', relatedProduct.id)
+                        .then(({ error }) => {
+                          if (error) console.error('Error updating related product slug:', error);
+                        });
+                    }
+                    
                     return {
                       ...relatedProduct,
                       images,
@@ -252,6 +308,7 @@ const ProductDetailPage: React.FC = () => {
                   
                   setRelatedProducts(processedRelated);
                 } else {
+                  console.log('No related products found');
                   setRelatedProducts([]);
                 }
               })

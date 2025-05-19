@@ -13,10 +13,12 @@ import { supabase } from '../lib/supabase';
 
 // Generate a URL-friendly slug from a product name
 const generateSlug = (name: string) => {
+  if (!name) return '';
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+    .replace(/(^-|-$)/g, '')
+    .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
 };
 
 const ShopPage: React.FC = () => {
@@ -46,9 +48,13 @@ const ShopPage: React.FC = () => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   // Open Quick View Modal
-  const handleQuickView = (productId: number | string) => {
+  const handleQuickView = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
+      // Ensure product has a slug
+      if (!product.slug) {
+        product.slug = generateSlug(product.name);
+      }
       setQuickViewProduct(product);
       setIsQuickViewOpen(true);
     }
@@ -654,7 +660,22 @@ const ShopPage: React.FC = () => {
                       className="group product-card-hover"
                     >
                       <div className="relative">
-                        <Link to={`/product/${product.slug || generateSlug(product.name)}`} className="block aspect-square overflow-hidden mb-4">
+                        <Link to={`/product/${product.slug || generateSlug(product.name)}`} className="block aspect-square overflow-hidden mb-4" data-testid="product-link" onClick={() => {
+                            // Ensure product has a valid slug
+                            if (!product.slug) {
+                              const slug = generateSlug(product.name);
+                              // Update product with slug locally
+                              product.slug = slug;
+                              // Update in database (don't wait for completion)
+                              supabase
+                                .from('products')
+                                .update({ slug })
+                                .eq('id', product.id)
+                                .then(({ error }) => {
+                                  if (error) console.error('Error updating product slug:', error);
+                                });
+                            }
+                          }}>
                           <img 
                             src={product.image} 
                             alt={product.name} 

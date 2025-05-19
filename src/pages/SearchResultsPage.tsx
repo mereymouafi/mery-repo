@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ShoppingBag, Tag, Loader, Heart, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { searchAll, SearchResult } from '../services/searchService';
+
+// Generate a URL-friendly slug from a product name
+const generateSlug = (name: string) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
+};
 
 const SearchResultsPage: React.FC = () => {
   const location = useLocation();
@@ -174,10 +185,26 @@ const SearchResultsPage: React.FC = () => {
                     
                     {/* Product image with link */}
                     <Link 
-                      to={result.type === 'product' ? `/product/${result.id}` : 
+                      to={result.type === 'product' ? `/product/${result.slug || generateSlug(result.name)}` : 
                          result.type === 'brand' ? `/brand/${result.slug || result.id}` : 
                          `/category/${result.slug || result.id}`}
                       className="block aspect-square overflow-hidden mb-4"
+                      onClick={() => {
+                        // Ensure product has a valid slug if it's a product
+                        if (result.type === 'product' && !result.slug) {
+                          const slug = generateSlug(result.name);
+                          // Update result with slug locally
+                          result.slug = slug;
+                          // Update in database (don't wait for completion)
+                          supabase
+                            .from('products')
+                            .update({ slug })
+                            .eq('id', result.id)
+                            .then(({ error }: { error: any }) => {
+                              if (error) console.error('Error updating product slug:', error);
+                            });
+                        }
+                      }}
                     >
                       {result.image ? (
                         <img 

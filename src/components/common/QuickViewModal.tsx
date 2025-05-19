@@ -6,6 +6,16 @@ import { X, Minus, Plus, ShoppingBag, Check } from 'lucide-react';
 import { Product, brands } from '../../data/products';
 import { CartContext } from '../../context/CartContext';
 
+// Generate a URL-friendly slug from a product name
+const generateSlug = (name: string) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
+};
+
 interface QuickViewModalProps {
   product: Product | null;
   isOpen: boolean;
@@ -63,7 +73,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     // Add to cart context
     addToCart({
       id: Date.now(), // Generate a unique ID for the cart item
-      productId: product.id,
+      productId: typeof product.id === 'string' ? parseInt(product.id, 10) : product.id,
       name: product.name,
       price: product.price,
       quantity: quantity,
@@ -174,7 +184,29 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                       {product.description.substring(0, 150)}
                       {product.description.length > 150 ? '...' : ''}
                     </p>
-                    <Link to={`/product/${product.id}`} className="text-luxury-gold hover:underline text-sm mt-2 inline-block">
+                    <Link 
+                      to={`/product/${product.slug || generateSlug(product.name)}`} 
+                      className="text-luxury-gold hover:underline text-sm mt-2 inline-block"
+                      onClick={() => {
+                        // Ensure product has a valid slug before navigating
+                        if (!product.slug) {
+                          // Generate and assign slug locally
+                          const slug = generateSlug(product.name);
+                          product.slug = slug;
+                          
+                          // Update in database (don't wait for completion)
+                          import('../../lib/supabase').then(({ supabase }) => {
+                            supabase
+                              .from('products')
+                              .update({ slug })
+                              .eq('id', product.id)
+                              .then(({ error }) => {
+                                if (error) console.error('Error updating product slug:', error);
+                              });
+                          });
+                        }
+                      }}
+                    >
                       View Full Details
                     </Link>
                   </div>
