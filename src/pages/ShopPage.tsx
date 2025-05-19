@@ -516,7 +516,7 @@ const ShopPage: React.FC = () => {
                   <X size={24} />
                 </button>
               </div>
-              <div className="p-4 overflow-y-auto h-[calc(100vh-60px)]" style={{ scrollbarWidth: 'thin' }}>
+              <div className="p-4 pb-20 overflow-y-auto h-[calc(100vh-60px)]" style={{ scrollbarWidth: 'thin' }}>
                 {/* Category Filter */}
                 <div className="mb-8">
                   <h4 className="text-sm font-medium text-luxury-black mb-3">Category</h4>
@@ -608,9 +608,10 @@ const ShopPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="flex space-x-4">
+                {/* Fixed buttons at the bottom of mobile screen with luxury styling */}
+                <div className="fixed bottom-0 left-0 right-0 flex space-x-0 bg-gradient-to-b from-white to-luxury-cream shadow-lg border-t border-luxury-gold/20 z-50">
                   <button
-                    className="flex-1 py-2 border border-luxury-black bg-luxury-black text-white"
+                    className="flex-1 py-4 border-r border-luxury-gold/20 bg-white text-luxury-black font-medium uppercase tracking-wider text-sm transition-colors hover:bg-luxury-black hover:text-white"
                     onClick={() => {
                       setFilters({
                         category: 'all',
@@ -624,7 +625,7 @@ const ShopPage: React.FC = () => {
                     Reset
                   </button>
                   <button
-                    className="flex-1 py-2 border border-luxury-gold bg-luxury-gold text-luxury-black"
+                    className="flex-1 py-4 bg-luxury-gold text-luxury-black font-medium uppercase tracking-wider text-sm transition-colors hover:bg-luxury-gold-light"
                     onClick={toggleMobileFilters}
                   >
                     Apply

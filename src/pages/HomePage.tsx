@@ -368,7 +368,7 @@ const HomePage: React.FC = () => {
           >
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif text-white mb-4">Exceptional Luxury</h1>
             <p className="text-xl text-white mb-8 max-w-2xl mx-auto">
-              Experience the pinnacle of craftsmanship and design with our exquisite collection
+              Experieeence the pinnacle of craftsmanship and design with our exquisite collection
             </p>
             <div className="space-x-4">
               <Link to="/shop" className="btn btn-gold">
