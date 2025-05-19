@@ -5,6 +5,11 @@ import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import './index.css';
 
+// Import Swiper styles for mobile slideshow
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/effect-fade';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

@@ -86,3 +86,67 @@ span:not([class]):not([id]) {
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-luxury-gold;
 }
+
+/* Luxury Slideshow Styling for Mobile */
+.luxury-swiper {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Gold-accented pagination bullets */
+.swiper-pagination-bullet {
+  width: 12px !important;
+  height: 2px !important;
+  background: rgba(255, 255, 255, 0.4) !important;
+  opacity: 1 !important;
+  border-radius: 0 !important;
+  transition: all 0.3s ease !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: #c8a97e !important; /* luxury gold color */
+  width: 18px !important;
+  opacity: 1 !important;
+}
+
+/* Elegant fade transition between slides */
+.swiper-slide {
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+
+.swiper-slide-active {
+  opacity: 1;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  .luxury-swiper {
+    height: 100vh !important; /* Force full viewport height */
+    width: 100vw;
+  }
+  
+  .luxury-swiper .swiper-slide {
+    height: 100vh !important;
+  }
+  
+  .luxury-swiper .swiper-slide img {
+    object-fit: cover !important;
+    height: 100vh !important;
+    width: 100% !important;
+    object-position: center !important;
+  }
+  
+  /* Gold caption styling for mobile */
+  .swiper-slide .caption-overlay {
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    border-left: 2px solid #c8a97e;
+  }
+  
+  /* Add iOS momentum scrolling for smoother mobile experience */
+  .luxury-swiper {
+    -webkit-overflow-scrolling: touch;
+  }
+}

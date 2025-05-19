@@ -17,93 +17,104 @@ const generateSlug = (name: string): string => {
     .replace(/^-|-$/g, '');
 };
 
-// Luxury Slideshow Component
+// Luxury Slideshow Component with Swiper for mobile optimization
 const LuxurySlideshow: React.FC = () => {
+  // Premium product images for the slideshow
   const slides = [
     {
-      image: "https://images.unsplash.com/photo-1635855374289-b6ca7fe114ab?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      alt: "Elegant luxury clothing with soft golden lighting"
+      image: "https://www.mrporter.com/variants/images/1647597339854985/ou/w960_q80.jpg",
+      alt: "Premium Jacquemus shirt with detailed craftsmanship"
     },
     {
-      image: "https://images.pexels.com/photos/298863/pexels-photo-298863.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      alt: "Premium leather shoes with exquisite craftsmanship"
+      image: "https://www.mrporter.com/variants/images/1647597339854985/cu/w960_q80.jpg",
+      alt: "Luxury Jacquemus shirt detail view"
     },
     {
-      image: "https://images.pexels.com/photos/7609142/pexels-photo-7609142.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      alt: "Luxurious men's accessories with refined details"
+      image: "https://www.prada.com/content/dam/pradabkg_products/2/2DE/2DE127/055F0002/2DE127_055_F0002_F_G000_MDL.jpg/_jcr_content/renditions/cq5dam.web.hebebed.1000.1000.jpg",
+      alt: "Elegant Prada footwear with premium design"
     },
     {
-      image: "https://images.pexels.com/photos/11911858/pexels-photo-11911858.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      alt: "Elegant watch with premium materials and design"
+      image: "https://www.prada.com/content/dam/pradabkg_products/2/2DE/2DE127/055F0002/2DE127_055_F0002_F_G000_SLT.jpg/_jcr_content/renditions/cq5dam.web.hebebed.1000.1000.jpg",
+      alt: "Prada luxury footwear detail shot"
     },
     {
-      image: "https://images.pexels.com/photos/298864/pexels-photo-298864.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      alt: "Sophisticated leather footwear with artisanal quality"
-    },
-    {
-      image: "https://images.pexels.com/photos/3558802/pexels-photo-3558802.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      alt: "Premium black leather shoes with elegant design"
+      image: "https://brattelifamilystores.com/cdn/shop/files/0400021093619_BLACKFOLIAGE_A1_540x.webp?v=1734120080",
+      alt: "Premium black foliage design accessory"
     }
   ];
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Function to reset the slideshow timer
-  const resetTimeout = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-  };
-
-  // Effect to handle the slideshow timing
+  // Using Swiper for mobile-optimized slideshow
   useEffect(() => {
-    resetTimeout();
-    timeoutRef.current = setTimeout(() => {
-      setCurrentIndex((prevIndex) => (prevIndex === slides.length - 1 ? 0 : prevIndex + 1));
-    }, 6000); // Change slide every 6 seconds for cinematic feel
-
-    return () => {
-      resetTimeout(); // Clear timeout when component unmounts
+    // Import Swiper and modules dynamically to ensure they load only on client-side
+    const loadSwiper = async () => {
+      try {
+        const Swiper = await import('swiper');
+        const { Pagination, Autoplay, EffectFade } = await import('swiper/modules');
+        
+        // Initialize Swiper
+        const swiper = new Swiper.default('.luxury-swiper', {
+          modules: [Pagination, Autoplay, EffectFade],
+          slidesPerView: 1,
+          effect: 'fade',
+          fadeEffect: {
+            crossFade: true
+          },
+          speed: 1500,
+          loop: true,
+          autoplay: {
+            delay: 5000,
+            disableOnInteraction: false,
+          },
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true,
+            renderBullet: function (index, className) {
+              return `<span class="${className} w-12 h-[2px] bg-white/40 hover:bg-luxury-gold transition-all duration-300"></span>`;
+            },
+          },
+        });
+        
+        return () => {
+          swiper.destroy();
+        };
+      } catch (error) {
+        console.error('Failed to load Swiper:', error);
+      }
     };
-  }, [currentIndex, slides.length]);
+    
+    loadSwiper();
+  }, []);
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      {/* Golden overlay for warm lighting effect */}
+      {/* Golden overlay for warm luxury lighting effect */}
       <div className="absolute inset-0 bg-gradient-to-b from-luxury-gold/10 to-transparent opacity-40 z-10 pointer-events-none mix-blend-overlay"></div>
       
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 2, ease: "easeInOut" }} // Slow transition for cinematic feel
-          className="absolute inset-0"
-        >
-          <img 
-            src={slides[currentIndex].image} 
-            alt={slides[currentIndex].alt}
-            className="w-full h-full object-cover transform scale-[1.01] filter brightness-[0.95] contrast-[1.05]" // Slight zoom and filter for cinematic quality
-            style={{ 
-              transition: 'transform 8s ease-out', // Slow-motion zoom effect
-              transform: 'scale(1.05)' 
-            }}
-          />
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Subtle progress indicators */}
-      <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center gap-2">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            className={`w-12 h-[2px] ${index === currentIndex ? 'bg-luxury-gold' : 'bg-white/40'} transition-all duration-500`}
-            onClick={() => setCurrentIndex(index)}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
+      {/* Swiper container */}
+      <div className="luxury-swiper w-full h-full">
+        <div className="swiper-wrapper">
+          {slides.map((slide, index) => (
+            <div key={index} className="swiper-slide">
+              <div className="relative w-full h-full">
+                <img 
+                  src={slide.image} 
+                  alt={slide.alt}
+                  className="w-full h-full object-cover filter brightness-[0.97] contrast-[1.05]" 
+                  loading="lazy"
+                  style={{ objectPosition: 'center center' }}
+                />
+                
+                {/* Mobile-optimized caption overlay - only visible on smaller screens */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-black/30 backdrop-blur-sm md:hidden">
+                  <p className="text-white/90 text-sm font-serif italic">{slide.alt}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Custom pagination with gold accent for active slide */}
+        <div className="swiper-pagination absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2"></div>
       </div>
     </div>
   );
@@ -343,8 +354,8 @@ const HomePage: React.FC = () => {
       </Helmet>
 
       {/* Hero Section with Luxury Slideshow */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
+      <section className="relative h-screen w-full flex items-center justify-center overflow-hidden p-0 m-0">
+        <div className="absolute inset-0 z-0 w-full h-full p-0 m-0">
           <LuxurySlideshow />
           <div className="absolute inset-0 bg-black bg-opacity-30"></div>
         </div>

@@ -54,7 +54,7 @@ const Layout: React.FC = () => {
       <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       
       {/* WhatsApp Button - fixed to bottom right */}
-      <WhatsAppButton phoneNumber="+212675597187" message="Hello! I'm interested  luxury products at Luxe Maroc." />
+      <WhatsAppButton phoneNumber="+212675597187" message="Hello! I'm interested in luxury products at Luxe Maroc" />
     </div>
   );
 };
