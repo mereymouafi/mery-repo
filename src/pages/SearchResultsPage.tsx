@@ -1,353 +1,189 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { motion, AnimatePresence } from 'framer-motion';
-import { products, brands, categories } from '../data/products';
-import { X, ChevronDown, ChevronUp, Filter, Grid, List } from 'lucide-react';
-
-interface SearchResult {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  category: string;
-  brand?: string;
-  type: 'product';
-}
+import { ShoppingBag, Tag, Loader } from 'lucide-react';
+import { searchAll, SearchResult } from '../services/searchService';
 
 const SearchResultsPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const query = searchParams.get('q') || '';
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [activeBrand, setActiveBrand] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
-  const [categoryExpanded, setCategoryExpanded] = useState(false);
-  const [brandExpanded, setBrandExpanded] = useState(false);
-  const [view, setView] = useState<'grid' | 'list'>('grid');
-
-  // Category filters
-  const categoryFilters = [
-    { id: 'all', name: 'All Products' },
-    ...categories.filter(cat => cat.id !== 'all')
-  ];
-
-  // Brand filters
-  const brandFilters = [
-    { id: 'all', name: 'All Brands' },
-    ...brands.filter(brand => brand.id !== 'all')
-  ];
-
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'products' | 'brands' | 'categories'>('all');
+  
+  // Get search query from URL
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get('q');
+    
     if (query) {
-      // Set loading state
-      setLoading(true);
-      
-      // Quick immediate search to improve perceived performance
-      const normalizedQuery = query.toLowerCase().trim();
-      const quickMatchedProducts = products
-        .filter(product => 
-          product.name.toLowerCase().includes(normalizedQuery) ||
-          (product.brand && product.brand.toLowerCase().includes(normalizedQuery)) ||
-          product.category.toLowerCase().includes(normalizedQuery) ||
-          product.description.toLowerCase().includes(normalizedQuery)
-        )
-        .map(product => ({
-          id: product.id,
-          name: product.name,
-          image: product.image,
-          price: product.price,
-          category: product.category,
-          brand: product.brand,
-          type: 'product' as const
-        }));
-      
-      setResults(quickMatchedProducts);
-      
-      // Simulate a more thorough search with a slight delay
-      // This gives the impression of a more thorough search
-      setTimeout(() => {
-        setLoading(false);
-      }, 300);
+      setSearchQuery(query);
+      performSearch(query);
     } else {
-      setResults([]);
-      setLoading(false);
+      // Redirect to home if no query
+      navigate('/');
     }
-  }, [query]);
-
-  // Apply filters
-  const filteredResults = results
-    .filter(result => activeCategory === 'all' || result.category === activeCategory)
-    .filter(result => activeBrand === 'all' || result.brand === activeBrand);
-
-  // Toggle mobile filters
-  const toggleFilters = () => {
-    setShowFilters(!showFilters);
+  }, [location.search, navigate]);
+  
+  // Perform search
+  const performSearch = async (query: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const results = await searchAll(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setError('An error occurred while searching. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  // Handle category selection
-  const handleCategoryChange = (categoryId: string) => {
-    setActiveCategory(categoryId);
-    setCategoryExpanded(false);
-  };
-
-  // Handle brand selection
-  const handleBrandChange = (brandId: string) => {
-    setActiveBrand(brandId);
-    setBrandExpanded(false);
-  };
-
-  // Reset all filters
-  const resetFilters = () => {
-    setActiveCategory('all');
-    setActiveBrand('all');
-  };
-
-  // Toggle category dropdown
-  const toggleCategoryDropdown = () => {
-    setCategoryExpanded(!categoryExpanded);
-    if (brandExpanded) setBrandExpanded(false);
-  };
-
-  // Toggle brand dropdown
-  const toggleBrandDropdown = () => {
-    setBrandExpanded(!brandExpanded);
-    if (categoryExpanded) setCategoryExpanded(false);
-  };
-
-  // Get brand name from ID
-  const getBrandName = (brandId: string | undefined) => {
-    if (!brandId) return null;
-    return brands.find(b => b.id === brandId)?.name || brandId;
-  };
-
-  // Get active category name
-  const getActiveCategoryName = () => {
-    return categoryFilters.find(c => c.id === activeCategory)?.name || 'All Products';
-  };
-
-  // Get active brand name
-  const getActiveBrandName = () => {
-    return brandFilters.find(b => b.id === activeBrand)?.name || 'All Brands';
-  };
-
+  
+  // Filter results based on active filter
+  const filteredResults = searchResults.filter(result => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'products') return result.type === 'product';
+    if (activeFilter === 'brands') return result.type === 'brand';
+    if (activeFilter === 'categories') return result.type === 'category';
+    return true;
+  });
+  
+  // Count results by type
+  const productCount = searchResults.filter(r => r.type === 'product').length;
+  const brandCount = searchResults.filter(r => r.type === 'brand').length;
+  const categoryCount = searchResults.filter(r => r.type === 'category').length;
   return (
     <>
       <Helmet>
-        <title>{query ? `Results for "${query}"` : 'Search'} | Luxe Maroc</title>
+        <title>Search | Luxe Maroc</title>
       </Helmet>
 
       <section className="bg-white py-6 border-b border-gray-200">
         <div className="container text-center">
           <h1 className="text-2xl md:text-3xl font-serif text-luxury-black">
-            {query ? `Results for "${query}"` : 'Search'}
+            {searchQuery ? `Search Results for "${searchQuery}"` : 'Search'}
           </h1>
-          <p className="text-luxury-gray mt-2">
-            {filteredResults.length} {filteredResults.length === 1 ? 'result' : 'results'} found
-          </p>
         </div>
       </section>
 
       <section className="py-8">
-        <div className="container">
-          <div className="flex flex-wrap items-center justify-between mb-6">
-            {/* Compact filters row */}
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="text-luxury-black font-medium">Filters</div>
-              <div className="relative">
-                <button 
-                  onClick={toggleCategoryDropdown}
-                  className="flex items-center gap-2 px-3 py-1 border rounded-sm text-sm transition-colors hover:border-gray-300"
-                >
-                  <span>Category: {getActiveCategoryName()}</span>
-                  {categoryExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
-                <AnimatePresence>
-                  {categoryExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-sm shadow-lg p-2 w-48"
-                    >
-                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                        {categoryFilters.map(category => (
-                          <button 
-                            key={category.id}
-                            onClick={() => handleCategoryChange(category.id)}
-                            className={`text-left px-2 py-1 text-sm rounded-sm ${
-                              activeCategory === category.id 
-                                ? 'bg-luxury-gold/10 text-luxury-black' 
-                                : 'hover:bg-gray-100 text-luxury-gray'
-                            }`}
-                          >
-                            {category.name}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div className="relative">
-                <button 
-                  onClick={toggleBrandDropdown}
-                  className="flex items-center gap-2 px-3 py-1 border rounded-sm text-sm transition-colors hover:border-gray-300"
-                >
-                  <span>Brand: {getActiveBrandName()}</span>
-                  {brandExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
-                <AnimatePresence>
-                  {brandExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-sm shadow-lg p-2 w-48"
-                    >
-                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                        {brandFilters.map(brand => (
-                          <button 
-                            key={brand.id}
-                            onClick={() => handleBrandChange(brand.id)}
-                            className={`text-left px-2 py-1 text-sm rounded-sm ${
-                              activeBrand === brand.id 
-                                ? 'bg-luxury-gold/10 text-luxury-black' 
-                                : 'hover:bg-gray-100 text-luxury-gray'
-                            }`}
-                          >
-                            {brand.name}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              {(activeCategory !== 'all' || activeBrand !== 'all') && (
-                <button 
-                  onClick={resetFilters}
-                  className="text-luxury-gold text-sm underline"
-                >
-                  Reset all
-                </button>
-              )}
-            </div>
-
-            {/* View toggle */}
-            <div className="flex border border-gray-200 ml-auto mt-2 md:mt-0">
-              <button 
-                className={`p-2 ${view === 'grid' ? 'bg-gray-100' : 'bg-white'}`}
-                onClick={() => setView('grid')}
-                aria-label="Grid view"
-              >
-                <Grid size={18} />
-              </button>
-              <button 
-                className={`p-2 ${view === 'list' ? 'bg-gray-100' : 'bg-white'}`}
-                onClick={() => setView('list')}
-                aria-label="List view"
-              >
-                <List size={18} />
-              </button>
-            </div>
+        <div className="container max-w-6xl mx-auto px-4">
+          {/* Filter tabs */}
+          <div className="flex flex-wrap justify-center mb-8 border-b">
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'all' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+            >
+              All ({searchResults.length})
+            </button>
+            <button
+              onClick={() => setActiveFilter('products')}
+              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'products' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+            >
+              Products ({productCount})
+            </button>
+            <button
+              onClick={() => setActiveFilter('brands')}
+              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'brands' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+            >
+              Brands ({brandCount})
+            </button>
+            <button
+              onClick={() => setActiveFilter('categories')}
+              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'categories' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+            >
+              Categories ({categoryCount})
+            </button>
           </div>
-
-          {/* Search results */}
-          <div className="w-full">
-            {loading ? (
-              // Loading state with LV style loading spinner
-              <div className="py-12 text-center">
-                <motion.div 
-                  className="w-20 h-20 mx-auto mb-4 border-t-2 border-luxury-gold rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                />
-                <p className="text-luxury-gray">Searching...</p>
-              </div>
-            ) : filteredResults.length > 0 ? (
-              // Search results grid
-              <motion.div 
-                layout
-                className={view === 'grid' 
-                  ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"
-                  : "space-y-6"
-                }
-              >
-                {filteredResults.map((result, index) => (
-                  <motion.div
-                    key={result.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
-                      duration: 0.4, 
-                      delay: loading ? 0 : Math.min(index * 0.05, 0.5),
-                      type: "spring", 
-                      stiffness: 150, 
-                      damping: 20
-                    }}
-                    className={view === 'grid' ? "group" : "flex border-b border-gray-200 pb-6"}
-                  >
-                    <Link to={`/product/${result.id}`} className={view === 'grid' ? "block" : "flex flex-row gap-6"}>
-                      <motion.div 
-                        whileHover={{ scale: 1.03 }}
-                        transition={{ duration: 0.3 }}
-                        className={view === 'grid' 
-                          ? "aspect-square overflow-hidden mb-4" 
-                          : "w-40 h-40 flex-shrink-0 overflow-hidden"
-                        }
-                      >
-                        <img 
-                          src={result.image} 
-                          alt={result.name} 
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                      </motion.div>
-                      
-                      <div className={view === 'list' ? "flex-1" : ""}>
-                        {/* Brand if available */}
-                        {result.brand && (
-                          <div className="uppercase text-xs text-luxury-gray tracking-wider mb-1">
-                            {getBrandName(result.brand)}
-                          </div>
-                        )}
-                        
-                        <h3 className="font-serif text-luxury-black text-lg mb-1 transition-colors group-hover:text-luxury-gold">
-                          {result.name}
-                        </h3>
-                        
-                        <p className="text-luxury-gray">{result.price.toLocaleString()} MAD</p>
-                        
-                        {view === 'list' && (
-                          <p className="text-luxury-gray mt-2 line-clamp-2">
-                            {products.find(p => p.id === result.id)?.description.substring(0, 120)}...
-                          </p>
-                        )}
+          
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex justify-center items-center py-12">
+              <Loader className="animate-spin text-gray-400" size={30} />
+              <span className="ml-3 text-gray-600 text-lg">Searching...</span>
+            </div>
+          )}
+          
+          {/* Error state */}
+          {error && (
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Link to="/shop" className="inline-block bg-black text-white px-6 py-2 text-sm uppercase tracking-wider">
+                Browse our collections
+              </Link>
+            </div>
+          )}
+          
+          {/* No results */}
+          {!isLoading && !error && filteredResults.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-luxury-gray mb-2">No results found for "{searchQuery}"</p>
+              <p className="text-sm text-gray-500 mb-6">Try a different search term or browse our collections</p>
+              <Link to="/shop" className="inline-block bg-black text-white px-6 py-2 text-sm uppercase tracking-wider">
+                Browse Collections
+              </Link>
+            </div>
+          )}
+          
+          {/* Results grid */}
+          {!isLoading && !error && filteredResults.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredResults.map((result) => (
+                <div 
+                  key={`${result.type}-${result.id}`}
+                  className="border border-gray-200 rounded-sm overflow-hidden hover:shadow-md transition-shadow duration-300 cursor-pointer"
+                  onClick={() => {
+                    if (result.type === 'product') {
+                      navigate(`/product/${result.id}`);
+                    } else if (result.type === 'brand') {
+                      navigate(`/brand/${result.slug || result.id}`);
+                    } else if (result.type === 'category') {
+                      navigate(`/category/${result.slug || result.id}`);
+                    }
+                  }}
+                >
+                  <div className="relative pt-[75%] bg-gray-50">
+                    {result.image ? (
+                      <img 
+                        src={result.image} 
+                        alt={result.name} 
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {result.type === 'product' && <ShoppingBag size={40} className="text-gray-300" />}
+                        {result.type === 'brand' && <Tag size={40} className="text-gray-300" />}
+                        {result.type === 'category' && <Tag size={40} className="text-gray-300" />}
                       </div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </motion.div>
-            ) : (
-              // No results
-              <div className="py-12 text-center">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
-                  <X size={32} className="text-luxury-gray" />
+                    )}
+                    <div className="absolute top-2 right-2 bg-white px-2 py-1 text-xs font-medium rounded shadow-sm">
+                      {result.type === 'product' && 'Product'}
+                      {result.type === 'brand' && 'Brand'}
+                      {result.type === 'category' && 'Category'}
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <h3 className="text-sm font-medium text-gray-900 mb-1">{result.name}</h3>
+                    {result.description && (
+                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+                        {result.description}
+                      </p>
+                    )}
+                    {result.price && (
+                      <p className="text-sm font-medium text-gray-900 mt-2">
+                        ${result.price.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <p className="text-luxury-gray mb-4">No results match your search.</p>
-                <p className="text-luxury-gray">Try with a different term or browse our collections.</p>
-                <div className="mt-8">
-                  <Link to="/shop" className="btn btn-primary">
-                    Browse our collections
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </>
