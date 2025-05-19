@@ -686,7 +686,7 @@ const ShopPage: React.FC = () => {
                               className="btn btn-gold w-full text-sm py-2"
                               onClick={(e) => {
                                 e.preventDefault();
-                                handleQuickView(product.id);
+                                handleQuickView(String(product.id));
                               }}
                             >
                               Quick View
