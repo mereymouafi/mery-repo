@@ -336,6 +336,33 @@ const ShopPage: React.FC = () => {
           [data-product-id], .product-id, #product-id, div[data-product-id] {
             display: none !important;
           }
+          
+          /* Custom scrollbar styling for filter sidebar */
+          .lg\:block .sticky::-webkit-scrollbar,
+          .overflow-y-auto::-webkit-scrollbar {
+            width: 4px;
+          }
+          
+          .lg\:block .sticky::-webkit-scrollbar-track,
+          .overflow-y-auto::-webkit-scrollbar-track {
+            background: #f5f3ee;
+          }
+          
+          .lg\:block .sticky::-webkit-scrollbar-thumb,
+          .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: #d4af37;
+            border-radius: 4px;
+          }
+          
+          .lg\:block .sticky::-webkit-scrollbar-thumb:hover,
+          .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: #c49c22;
+          }
+          
+          /* Fix for iOS momentum scrolling */
+          .overflow-y-auto {
+            -webkit-overflow-scrolling: touch;
+          }
         `}
       </style>
 
@@ -352,7 +379,7 @@ const ShopPage: React.FC = () => {
           <div className="flex flex-col lg:flex-row">
             {/* Desktop Filters Sidebar */}
             <div className="hidden lg:block w-64 flex-shrink-0 pr-8">
-              <div className="sticky top-24">
+              <div className="sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-2 pb-4" style={{ scrollbarWidth: 'thin' }}>
                 <h3 className="text-xl font-serif text-luxury-black mb-6">Filters</h3>
                 
                 {/* Category Filter */}
@@ -489,7 +516,7 @@ const ShopPage: React.FC = () => {
                   <X size={24} />
                 </button>
               </div>
-              <div className="p-4 overflow-y-auto h-[calc(100vh-60px)]">
+              <div className="p-4 overflow-y-auto h-[calc(100vh-60px)]" style={{ scrollbarWidth: 'thin' }}>
                 {/* Category Filter */}
                 <div className="mb-8">
                   <h4 className="text-sm font-medium text-luxury-black mb-3">Category</h4>
