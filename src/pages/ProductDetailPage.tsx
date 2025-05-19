@@ -350,7 +350,7 @@ const ProductDetailPage: React.FC = () => {
     
     addToCart({
       id: Date.now(), // Generate a unique ID for the cart item
-      productId: product.id, 
+      productId: typeof product.id === 'string' ? parseInt(product.id) : product.id, 
       name: product.name,
       price: product.price,
       quantity: quantity,

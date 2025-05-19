@@ -1,16 +1,17 @@
 // Mock product data
 export interface Product {
-  id: number;
+  id: number | string; // Can be number or UUID string
   name: string;
   price: number;
   description: string;
-  category: string;
-  brand?: string;
+  category?: string; // Keep for backwards compatibility
+  category_id?: string; // UUID format from Supabase
+  brand?: string; // Can be UUID or string name
   image: string;
   images: string[];
   isNew?: boolean;
   isBestSeller?: boolean;
-  color: string;
+  color: string | any; // Can be string or UUID
   dimensions: string;
   material: string;
   madeIn: string;

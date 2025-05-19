@@ -46,7 +46,7 @@ const ShopPage: React.FC = () => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   // Open Quick View Modal
-  const handleQuickView = (productId: number) => {
+  const handleQuickView = (productId: number | string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
       setQuickViewProduct(product);
@@ -172,20 +172,50 @@ const ShopPage: React.FC = () => {
     
     let result = [...products];
     
-    // Simple category filtering
+    // Category filtering with comprehensive matching
     if (filters.category !== 'all') {
       const selectedCategory = dbCategories.find(cat => cat.slug === filters.category);
+      console.log('Selected category:', selectedCategory);
       
       if (selectedCategory) {
-        // Simple direct match by category ID or name
+        // Improved filtering logic that handles multiple data formats
         result = result.filter(product => {
-          if (!product.category) return false;
+          // Get all possible category identifiers
+          const productCategoryId = product.category_id;
+          const productCategory = product.category;
           
-          const productCategory = String(product.category).toLowerCase();
-          return productCategory === String(selectedCategory.id).toLowerCase() || 
-                 productCategory === selectedCategory.name.toLowerCase() ||
-                 productCategory.includes(selectedCategory.name.toLowerCase());
+          // Debug for diagnosis
+          console.log('Category comparison:', {
+            product_id: product.id,
+            product_name: product.name,
+            productCategoryId,
+            productCategory,
+            selectedCategoryId: selectedCategory.id,
+            selectedCategorySlug: selectedCategory.slug,
+            selectedCategoryName: selectedCategory.name
+          });
+          
+          // Check against all possible category identifiers
+          if (productCategoryId && productCategoryId === selectedCategory.id) {
+            return true; // Direct UUID match
+          }
+          
+          if (productCategory) {
+            const productCategoryLower = String(productCategory).toLowerCase();
+            // Check legacy category field against various category identifiers
+            return productCategoryLower === String(selectedCategory.id).toLowerCase() ||
+                   productCategoryLower === selectedCategory.name.toLowerCase() ||
+                   productCategoryLower === selectedCategory.slug.toLowerCase() ||
+                   productCategoryLower.includes(selectedCategory.name.toLowerCase()) ||
+                   productCategoryLower.includes(selectedCategory.slug.toLowerCase());
+          }
+          
+          return false;
         });
+        
+        console.log(`Filtered to ${result.length} products after category filter`);
+      } else {
+        console.log('No matching category found in dbCategories for:', filters.category);
       }
     }
     
