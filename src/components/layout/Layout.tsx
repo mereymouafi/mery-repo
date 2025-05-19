@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import SearchModal from '../common/SearchModal';
+import WhatsAppButton from '../common/WhatsAppButton';
 import { motion } from 'framer-motion';
 
 const Layout: React.FC = () => {
@@ -51,6 +52,9 @@ const Layout: React.FC = () => {
       
       {/* Overlay components */}
       <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      
+      {/* WhatsApp Button - fixed to bottom right */}
+      <WhatsAppButton phoneNumber="+212675597187" message="Hello! I'm interested  luxury products at Luxe Maroc." />
     </div>
   );
 };
