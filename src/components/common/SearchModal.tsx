@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, Loader, Tag, ShoppingBag } from 'lucide-react';
+import { X, Search, Loader, Tag, ShoppingBag, Bookmark, Layers } from 'lucide-react';
 import { searchAll, SearchResult } from '../../services/searchService';
 import { products } from '../../data/products'; // Keep for placeholder animation
+import { supabase } from '../../lib/supabase';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -18,7 +19,15 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<{
+    products: Array<{id: string, name: string}>;
+    brands: Array<{id: string, name: string, slug: string}>;
+    categories: Array<{id: string, name: string, slug: string}>;
+  }>({ products: [], brands: [], categories: [] });
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const productNames = products.map(p => p.name); // Keep for placeholder animation
 
@@ -30,6 +39,25 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
       }, 100);
     }
   }, [isOpen]);
+  
+  // Handle clicks outside the suggestions dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Animated placeholder effect
   useEffect(() => {
@@ -44,15 +72,101 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     return () => clearInterval(interval);
   }, [isOpen, productNames.length]);
 
+  // Fetch search suggestions
+  const fetchSuggestions = async (query: string) => {
+    if (query.trim().length < 1) {
+      setSuggestions({ products: [], brands: [], categories: [] });
+      return;
+    }
+    
+    setIsFetchingSuggestions(true);
+    
+    try {
+      const searchTerm = `%${query.toLowerCase()}%`;
+      
+      // Get product name suggestions
+      const { data: productSuggestions, error: productError } = await supabase
+        .from('products')
+        .select('id, name')
+        .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        .limit(4);
+        
+      if (productError) throw productError;
+      
+      // Get brand name suggestions
+      const { data: brandSuggestions, error: brandError } = await supabase
+        .from('brands')
+        .select('id, name, slug')
+        .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        .limit(3);
+        
+      if (brandError) throw brandError;
+      
+      // Get category name suggestions
+      const { data: categorySuggestions, error: categoryError } = await supabase
+        .from('categories')
+        .select('id, name, slug')
+        .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        .limit(3);
+        
+      if (categoryError) throw categoryError;
+      
+      setSuggestions({
+        products: productSuggestions || [],
+        brands: brandSuggestions || [],
+        categories: categorySuggestions || []
+      });
+      
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      setSuggestions({ products: [], brands: [], categories: [] });
+    } finally {
+      setIsFetchingSuggestions(false);
+    }
+  };
+
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+    const value = e.target.value;
+    setSearchQuery(value);
     
-    if (e.target.value.trim().length > 0) {
-      performSearch(e.target.value);
+    if (value.trim().length > 0) {
+      performSearch(value);
+      fetchSuggestions(value);
+      setShowSuggestions(true);
     } else {
       setSearchResults([]);
+      setSuggestions({ products: [], brands: [], categories: [] });
+      setShowSuggestions(false);
     }
+  };
+  
+  // Handle suggestion click for products
+  const handleProductSuggestionClick = (productId: string, productName: string) => {
+    setSearchQuery(productName);
+    navigate(`/product/${productId}`);
+    onClose();
+  };
+  
+  // Handle suggestion click for brands
+  const handleBrandSuggestionClick = (brandSlug: string, brandName: string) => {
+    setSearchQuery(brandName);
+    navigate(`/brand/${brandSlug}`);
+    onClose();
+  };
+  
+  // Handle suggestion click for categories
+  const handleCategorySuggestionClick = (categorySlug: string, categoryName: string) => {
+    setSearchQuery(categoryName);
+    navigate(`/category/${categorySlug}`);
+    onClose();
+  };
+  
+  // Handle suggestion click for text
+  const handleTextSuggestionClick = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    performSearch(suggestion);
+    setShowSuggestions(false);
   };
   
   // Perform search with debounce
@@ -86,6 +200,24 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     }
   };
   
+  // Helper function to highlight matching text in suggestions
+  const highlightMatchingText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    
+    return (
+      <>
+        {parts.map((part, i) => (
+          regex.test(part) ? 
+            <span key={i} className="font-semibold text-black">{part}</span> : 
+            <span key={i} className="text-gray-700">{part}</span>
+        ))}
+      </>
+    );
+  };
+
   // Handle result click
   const handleResultClick = (result: SearchResult) => {
     switch (result.type) {
@@ -133,7 +265,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
 
             {/* Search input and buttons - Always visible */}
             <div className="max-w-4xl mx-auto mb-5 relative">
-              <form onSubmit={handleSearch} className={`relative flex items-center border transition-colors duration-300 ${isInputFocused ? 'border-black' : 'border-gray-300'} rounded-full overflow-hidden bg-white shadow-sm`}>
+              <form onSubmit={handleSearch} className={`relative flex items-center border transition-colors duration-300 ${isInputFocused ? 'border-black' : 'border-gray-300'} rounded-full overflow-visible bg-white shadow-sm`}>
                 <div className="flex-shrink-0 pl-4">
                   <Search size={16} className="text-gray-500" />
                 </div>
@@ -142,7 +274,12 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
                   type="text"
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  onFocus={() => setIsInputFocused(true)}
+                  onFocus={() => {
+                    setIsInputFocused(true);
+                    if (searchQuery.trim().length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
                   onBlur={() => setIsInputFocused(false)}
                   placeholder=" "
                   className="flex-grow py-3 px-4 text-base focus:outline-none bg-transparent rounded-full placeholder-gray-400 w-full"
@@ -184,7 +321,13 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
                 {searchQuery.trim() && (
                   <button 
                     type="button"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSearchResults([]);
+                      setSuggestions({ products: [], brands: [], categories: [] });
+                      setShowSuggestions(false);
+                      searchInputRef.current?.focus();
+                    }}
                     className="flex-shrink-0 px-4 py-1 text-base text-gray-500 focus:outline-none"
                     style={{ 
                       fontFamily: "'Futura', 'Lato', sans-serif", 
@@ -195,6 +338,105 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
                   </button>
                 )}
               </form>
+              
+              {/* Search Suggestions Dropdown */}
+              {showSuggestions && (suggestions.products.length > 0 || suggestions.brands.length > 0 || suggestions.categories.length > 0) && (
+                <div 
+                  ref={suggestionsRef}
+                  className="absolute left-0 right-0 top-full mt-1 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200"
+                  style={{ maxHeight: '300px', overflowY: 'auto' }}
+                >
+                  {isFetchingSuggestions ? (
+                    <div className="flex justify-center items-center py-4">
+                      <Loader size={24} className="text-gold-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="py-1">
+                      {/* Products section */}
+                      {suggestions.products.length > 0 && (
+                        <div className="mb-1">
+                          <div className="px-4 py-1 text-xs uppercase tracking-wider text-gray-500 font-medium bg-gray-50 flex items-center">
+                            <ShoppingBag size={14} className="mr-2 text-gold-500" />
+                            <span>Products</span>
+                          </div>
+                          <ul>
+                            {suggestions.products.map((product) => (
+                              <li key={`product-${product.id}`}>
+                                <button
+                                  onClick={() => handleProductSuggestionClick(product.id, product.name)}
+                                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center"
+                                >
+                                  <span className="ml-6">{highlightMatchingText(product.name, searchQuery)}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* Brands section */}
+                      {suggestions.brands.length > 0 && (
+                        <div className="mb-1">
+                          <div className="px-4 py-1 text-xs uppercase tracking-wider text-gray-500 font-medium bg-gray-50 flex items-center">
+                            <Bookmark size={14} className="mr-2 text-gold-500" />
+                            <span>Brands</span>
+                          </div>
+                          <ul>
+                            {suggestions.brands.map((brand) => (
+                              <li key={`brand-${brand.id}`}>
+                                <button
+                                  onClick={() => handleBrandSuggestionClick(brand.slug, brand.name)}
+                                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center"
+                                >
+                                  <span className="ml-6">{highlightMatchingText(brand.name, searchQuery)}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* Categories section */}
+                      {suggestions.categories.length > 0 && (
+                        <div className="mb-1">
+                          <div className="px-4 py-1 text-xs uppercase tracking-wider text-gray-500 font-medium bg-gray-50 flex items-center">
+                            <Layers size={14} className="mr-2 text-gold-500" />
+                            <span>Categories</span>
+                          </div>
+                          <ul>
+                            {suggestions.categories.map((category) => (
+                              <li key={`category-${category.id}`}>
+                                <button
+                                  onClick={() => handleCategorySuggestionClick(category.slug, category.name)}
+                                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center"
+                                >
+                                  <span className="ml-6">{highlightMatchingText(category.name, searchQuery)}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* View all results */}
+                      {searchQuery.trim().length > 0 && (
+                        <div className="border-t border-gray-100 mt-1 pt-1">
+                          <button
+                            onClick={() => {
+                              handleSearch();
+                              setShowSuggestions(false);
+                            }}
+                            className="w-full px-4 py-2 text-left text-gray-500 hover:bg-gray-50 flex items-center font-medium"
+                          >
+                            <Search size={16} className="mr-2 text-gold-500" />
+                            <span>View all results for "{searchQuery}"</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Search Results */}
