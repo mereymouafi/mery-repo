@@ -226,55 +226,66 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
                     </div>
                   </div>
                 ) : searchResults.length > 0 ? (
-                  <div className="max-w-4xl mx-auto">
-                    <h3 className="text-sm font-medium text-gray-900 mb-3 px-4">Search Results</h3>
-                    <ul className="divide-y divide-gray-100">
+                  <div className="max-w-6xl mx-auto">
+                    <h3 className="text-sm font-medium text-gray-900 mb-4 px-4">Search Results</h3>
+                    
+                    {/* Hide product IDs */}
+                    <style>
+                      {`
+                        /* Hide any elements that might be displaying product IDs */
+                        [data-product-id], .product-id, #product-id, div[data-product-id] {
+                          display: none !important;
+                        }
+                      `}
+                    </style>
+                    
+                    {/* Grid layout similar to ShopPage */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
                       {searchResults.map((result) => (
-                        <li 
-                          key={`${result.type}-${result.id}`} 
-                          className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+                        <div
+                          key={`${result.type}-${result.id}`}
+                          className="group product-card-hover cursor-pointer"
                           onClick={() => handleResultClick(result)}
                         >
-                          <div className="flex items-center px-4 py-3">
-                            {result.image ? (
-                              <img 
-                                src={result.image} 
-                                alt={result.name} 
-                                className="w-12 h-12 object-cover rounded-sm mr-4"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 bg-gray-100 rounded-sm flex items-center justify-center mr-4">
-                                {result.type === 'product' && <ShoppingBag size={20} className="text-gray-400" />}
-                                {result.type === 'brand' && <Tag size={20} className="text-gray-400" />}
-                                {result.type === 'category' && <Tag size={20} className="text-gray-400" />}
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
-                              {result.description && (
-                                <p className="text-xs text-gray-500 truncate">
-                                  {result.description.length > 100 
-                                    ? `${result.description.substring(0, 100)}...` 
-                                    : result.description}
-                                </p>
+                          <div className="relative">
+                            {/* Product image */}
+                            <div className="block aspect-square overflow-hidden mb-4">
+                              {result.image ? (
+                                <img 
+                                  src={result.image} 
+                                  alt={result.name} 
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                  {result.type === 'product' && <ShoppingBag size={40} className="text-gray-300" />}
+                                  {result.type === 'brand' && <Tag size={40} className="text-gray-300" />}
+                                  {result.type === 'category' && <Tag size={40} className="text-gray-300" />}
+                                </div>
                               )}
-                              <div className="flex items-center mt-1">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                  {result.type === 'product' && 'Product'}
-                                  {result.type === 'brand' && 'Brand'}
-                                  {result.type === 'category' && 'Category'}
-                                </span>
-                                {result.price && (
-                                  <span className="ml-2 text-sm font-medium text-gray-900">
-                                    ${result.price.toFixed(2)}
-                                  </span>
-                                )}
-                              </div>
+                              
+                              {/* Type badge - only show for non-products */}
+                              {result.type !== 'product' && (
+                                <div className="absolute bottom-2 left-2 bg-white px-2 py-1 text-xs font-medium">
+                                  {result.type === 'brand' ? 'Brand' : 'Category'}
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </li>
+                          
+                          {/* Product info */}
+                          <div className="text-center">
+                            <h3 className="font-serif text-luxury-black text-lg mb-1">{result.name}</h3>
+                            {result.type === 'product' && result.price && (
+                              <p className="text-luxury-gold font-medium">{result.price.toLocaleString()} MAD</p>
+                            )}
+                            {result.type !== 'product' && result.description && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{result.description}</p>
+                            )}
+                          </div>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                     
                     {searchResults.length > 0 && (
                       <div className="text-center py-4">

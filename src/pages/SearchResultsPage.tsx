@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ShoppingBag, Tag, Loader } from 'lucide-react';
+import { ShoppingBag, Tag, Loader, Heart, Filter } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { searchAll, SearchResult } from '../services/searchService';
 
 const SearchResultsPage: React.FC = () => {
@@ -11,7 +12,7 @@ const SearchResultsPage: React.FC = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'products' | 'brands' | 'categories'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'products' | 'brands' | 'categories'>('products');
   
   // Get search query from URL
   useEffect(() => {
@@ -62,41 +63,66 @@ const SearchResultsPage: React.FC = () => {
         <title>Search | Luxe Maroc</title>
       </Helmet>
 
-      <section className="bg-white py-6 border-b border-gray-200">
-        <div className="container text-center">
-          <h1 className="text-2xl md:text-3xl font-serif text-luxury-black">
-            {searchQuery ? `Search Results for "${searchQuery}"` : 'Search'}
+      <section className="bg-white py-8 border-b border-gray-100">
+        <div className="container max-w-6xl mx-auto px-4 text-center">
+          <h1 className="text-2xl md:text-3xl font-serif text-luxury-black uppercase tracking-wider mb-2">
+            {searchQuery ? searchQuery.toUpperCase() : 'SEARCH'}
           </h1>
+          <p className="text-sm text-gray-500">
+            {searchResults.length} Results of the search
+          </p>
         </div>
       </section>
+
+      {/* Hide product IDs */}
+      <style>
+        {`
+          /* Hide any elements that might be displaying product IDs */
+          [data-product-id], .product-id, #product-id, div[data-product-id] {
+            display: none !important;
+          }
+        `}
+      </style>
 
       <section className="py-8">
         <div className="container max-w-6xl mx-auto px-4">
           {/* Filter tabs */}
           <div className="flex flex-wrap justify-center mb-8 border-b">
             <button
-              onClick={() => setActiveFilter('all')}
-              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'all' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
-            >
-              All ({searchResults.length})
-            </button>
-            <button
               onClick={() => setActiveFilter('products')}
-              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'products' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+              className={`px-6 py-2 mx-2 text-sm font-medium ${activeFilter === 'products' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
             >
               Products ({productCount})
             </button>
             <button
               onClick={() => setActiveFilter('brands')}
-              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'brands' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+              className={`px-6 py-2 mx-2 text-sm font-medium ${activeFilter === 'brands' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
             >
               Brands ({brandCount})
             </button>
             <button
               onClick={() => setActiveFilter('categories')}
-              className={`px-4 py-2 mx-1 text-sm font-medium ${activeFilter === 'categories' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+              className={`px-6 py-2 mx-2 text-sm font-medium ${activeFilter === 'categories' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
             >
               Categories ({categoryCount})
+            </button>
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`px-6 py-2 mx-2 text-sm font-medium ${activeFilter === 'all' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+            >
+              All ({searchResults.length})
+            </button>
+          </div>
+          
+          {/* Sort and Filter options */}
+          <div className="flex justify-between items-center mb-6">
+            <p className="text-luxury-gray">
+              Showing {filteredResults.length} {filteredResults.length === 1 ? 'result' : 'results'}
+            </p>
+            
+            <button className="flex items-center px-4 py-2 border border-gray-300 rounded text-sm font-medium">
+              <Filter size={16} className="mr-2" />
+              <span>Filter</span>
             </button>
           </div>
           
@@ -129,58 +155,73 @@ const SearchResultsPage: React.FC = () => {
             </div>
           )}
           
-          {/* Results grid */}
+          {/* Results grid - Updated to match ShopPage layout */}
           {!isLoading && !error && filteredResults.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filteredResults.map((result) => (
-                <div 
+                <motion.div
                   key={`${result.type}-${result.id}`}
-                  className="border border-gray-200 rounded-sm overflow-hidden hover:shadow-md transition-shadow duration-300 cursor-pointer"
-                  onClick={() => {
-                    if (result.type === 'product') {
-                      navigate(`/product/${result.id}`);
-                    } else if (result.type === 'brand') {
-                      navigate(`/brand/${result.slug || result.id}`);
-                    } else if (result.type === 'category') {
-                      navigate(`/category/${result.slug || result.id}`);
-                    }
-                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="group product-card-hover"
                 >
-                  <div className="relative pt-[75%] bg-gray-50">
-                    {result.image ? (
-                      <img 
-                        src={result.image} 
-                        alt={result.name} 
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        {result.type === 'product' && <ShoppingBag size={40} className="text-gray-300" />}
-                        {result.type === 'brand' && <Tag size={40} className="text-gray-300" />}
-                        {result.type === 'category' && <Tag size={40} className="text-gray-300" />}
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2 bg-white px-2 py-1 text-xs font-medium rounded shadow-sm">
-                      {result.type === 'product' && 'Product'}
-                      {result.type === 'brand' && 'Brand'}
-                      {result.type === 'category' && 'Category'}
-                    </div>
+                  <div className="relative">
+                    {/* Heart/Favorite button */}
+                    <button className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center bg-white bg-opacity-70 rounded-full hover:bg-opacity-100 transition-all duration-200">
+                      <Heart size={18} className="text-gray-500 hover:text-red-500 transition-colors duration-200" />
+                    </button>
+                    
+                    {/* Product image with link */}
+                    <Link 
+                      to={result.type === 'product' ? `/product/${result.id}` : 
+                         result.type === 'brand' ? `/brand/${result.slug || result.id}` : 
+                         `/category/${result.slug || result.id}`}
+                      className="block aspect-square overflow-hidden mb-4"
+                    >
+                      {result.image ? (
+                        <img 
+                          src={result.image} 
+                          alt={result.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                          {result.type === 'product' && <ShoppingBag size={40} className="text-gray-300" />}
+                          {result.type === 'brand' && <Tag size={40} className="text-gray-300" />}
+                          {result.type === 'category' && <Tag size={40} className="text-gray-300" />}
+                        </div>
+                      )}
+                      
+                      {/* Type badge - only show for non-products */}
+                      {result.type !== 'product' && (
+                        <div className="absolute bottom-2 left-2 bg-white px-2 py-1 text-xs font-medium">
+                          {result.type === 'brand' ? 'Brand' : 'Category'}
+                        </div>
+                      )}
+                    </Link>
                   </div>
                   
-                  <div className="p-4">
-                    <h3 className="text-sm font-medium text-gray-900 mb-1">{result.name}</h3>
-                    {result.description && (
-                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                        {result.description}
-                      </p>
+                  {/* Product info */}
+                  <div className="text-center">
+                    <h3 className="font-serif text-luxury-black text-lg mb-1">
+                      <Link 
+                        to={result.type === 'product' ? `/product/${result.id}` : 
+                           result.type === 'brand' ? `/brand/${result.slug || result.id}` : 
+                           `/category/${result.slug || result.id}`}
+                        className="hover:underline"
+                      >
+                        {result.name}
+                      </Link>
+                    </h3>
+                    {result.type === 'product' && result.price && (
+                      <p className="text-luxury-gold font-medium">{result.price.toLocaleString()} MAD</p>
                     )}
-                    {result.price && (
-                      <p className="text-sm font-medium text-gray-900 mt-2">
-                        ${result.price.toFixed(2)}
-                      </p>
+                    {result.type !== 'product' && result.description && (
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{result.description}</p>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}

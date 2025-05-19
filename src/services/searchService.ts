@@ -15,7 +15,7 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
     return [];
   }
 
-  const searchTerm = `${query.toLowerCase()}%`;
+  const searchTerm = `%${query.toLowerCase()}%`;
   const results: SearchResult[] = [];
 
   try {
@@ -97,7 +97,7 @@ export async function searchProducts(query: string): Promise<SearchResult[]> {
     return [];
   }
 
-  const searchTerm = `${query.toLowerCase()}%`;
+  const searchTerm = `%${query.toLowerCase()}%`;
 
   try {
     const { data, error } = await supabase
@@ -130,7 +130,7 @@ export async function searchBrands(query: string): Promise<SearchResult[]> {
     return [];
   }
 
-  const searchTerm = `${query.toLowerCase()}%`;
+  const searchTerm = `%${query.toLowerCase()}%`;
 
   try {
     const { data, error } = await supabase
@@ -163,7 +163,7 @@ export async function searchCategories(query: string): Promise<SearchResult[]> {
     return [];
   }
 
-  const searchTerm = `${query.toLowerCase()}%`;
+  const searchTerm = `%${query.toLowerCase()}%`;
 
   try {
     const { data, error } = await supabase
