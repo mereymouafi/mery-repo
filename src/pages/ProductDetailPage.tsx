@@ -463,25 +463,35 @@ const ProductDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Hide product IDs - Enhanced targeting */}
-      <style>
-        {`
-          /* Hide UUID formats like the one in your screenshot */
-          div:empty + div:not(:has(img)):not(:has(h1)):not(:has(div.grid)):not(:has(button)):not(:has(nav)) {
-            display: none !important;
-          }
-          /* Hide any direct spans with UUID pattern text */
-          span:not(:has(*)):not([class]):not([id]) {
-            display: none !important;
-          }
-          /* Hide product SKUs, IDs, and any other identifiers */
-          [data-product-id], .product-id, #product-id, 
-          [data-sku], .sku, #sku, .product-sku,
-          [data-product-code], .product-code, #product-code {
-            display: none !important;
-          }
-        `}
-      </style>
+      {/* Global CSS to hide all product IDs including UUID formats */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Hide any element containing UUID pattern like C89949EA-DD87-438F-A689-8EA879D9F183 */
+        [id*="product-id"], [class*="product-id"], .product-id, #product-id,
+        [data-product-id], [data-id], [data-sku], .sku, #sku, .product-sku,
+        [data-product-code], .product-code, #product-code,
+        [data-uuid], .uuid, [id*="uuid"] {
+          display: none !important;
+        }
+
+        /* Target any element that might contain the specific UUID format */
+        *:has(> *:matches(/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/i)) {
+          display: none !important;
+        }
+        
+        /* Specifically target the product ID shown in the screenshot */
+        div:first-of-type + div:contains("C89949EA"),
+        *:contains("C89949EA-DD87-438F"),
+        *:contains("8EA879D9F183") {
+          display: none !important;
+        }
+        
+        /* Hide empty containers that might be displaying just product IDs */
+        div:empty + div:not(:has(img)):not(:has(button)):not(:has(h1)),
+        div:not(:has(*)):not([class*="swiper"]):not([class*="grid"]):not([class*="flex"]) {
+          display: none !important;
+        }
+      `}} />
+
 
       {/* Louis Vuitton Style Image Zoom Modal */}
       {zoomModalOpen && product && (
