@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { motion } from 'framer-motion';
-import { Filter, X, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Import products types and dependencies
 import { Product } from '../data/products';
@@ -36,6 +36,10 @@ const ShopPage: React.FC = () => {
     sortBy: 'newest',
   });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  // Dropdown state for filter categories
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [brandDropdownOpen, setBrandDropdownOpen] = useState(false); 
+  const [priceDropdownOpen, setPriceDropdownOpen] = useState(false);
   
   // Dynamic categories and brands from Supabase
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
@@ -382,110 +386,223 @@ const ShopPage: React.FC = () => {
               <div className="sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-2 pb-4" style={{ scrollbarWidth: 'thin' }}>
                 <h3 className="text-xl font-serif text-luxury-black mb-6">Filters</h3>
                 
-                {/* Category Filter */}
+                {/* Category Filter Dropdown */}
                 <div className="mb-8">
-                  <h4 className="text-sm font-medium text-luxury-black mb-3">Category</h4>
-                  {loadingCategories ? (
-                    <p className="text-sm text-luxury-gray">Loading categories...</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="category"
-                          value="all"
-                          checked={filters.category === 'all'}
-                          onChange={() => handleFilterChange('category', 'all')}
-                          className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                        />
-                        <span className="ml-2 text-luxury-gray">All Products</span>
-                      </label>
-                      {dbCategories.map(cat => (
-                        <label key={cat.id} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="category"
-                            value={cat.slug}
-                            checked={filters.category === cat.slug}
-                            onChange={() => handleFilterChange('category', cat.slug)}
-                            className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                          />
-                          <span className="ml-2 text-luxury-gray">{cat.name}</span>
-                        </label>
-                      ))}
+                  <div 
+                    className="flex justify-between items-center cursor-pointer py-2 border-b border-luxury-gold/20 hover:border-luxury-gold transition-all duration-300"
+                    onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                  >
+                    <h4 className="text-sm font-medium text-luxury-black">Category</h4>
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm text-luxury-gold font-medium">
+                        {filters.category === 'all' ? 'All Products' : dbCategories.find(cat => cat.slug === filters.category)?.name || 'All Products'}
+                      </span>
+                      {categoryDropdownOpen ? (
+                        <ChevronUp size={16} className="text-luxury-gold" />
+                      ) : (
+                        <ChevronDown size={16} className="text-luxury-gold" />
+                      )}
                     </div>
-                  )}
-                </div>
-                
-                {/* Brand Filter */}
-                <div className="mb-8">
-                  <h4 className="text-sm font-medium text-luxury-black mb-3">Brand</h4>
-                  {loadingBrands ? (
-                    <p className="text-sm text-luxury-gray">Loading brands...</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="brand"
-                          value="all"
-                          checked={filters.brand === 'all'}
-                          onChange={() => handleFilterChange('brand', 'all')}
-                          className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                        />
-                        <span className="ml-2 text-luxury-gray">All Brands</span>
-                      </label>
-                      {dbBrands.map((brand: Brand) => (
-                        <label key={brand.id} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="brand"
-                            value={brand.slug}
-                            checked={filters.brand === brand.slug}
-                            onChange={() => handleFilterChange('brand', brand.slug)}
-                            className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                          />
-                          <span className="ml-2 text-luxury-gray">{brand.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                {/* Price Range Filter */}
-                <div className="mb-8">
-                  <h4 className="text-sm font-medium text-luxury-black mb-3">Price Range</h4>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="priceRange"
-                        value="all"
-                        checked={filters.priceRange === 'all'}
-                        onChange={() => handleFilterChange('priceRange', 'all')}
-                        className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                      />
-                      <span className="ml-2 text-luxury-gray">All Prices</span>
-                    </label>
-                    {[
-                      { label: 'Under 1,000 MAD', value: '0-1000' },
-                      { label: '1,000 - 2,000 MAD', value: '1000-2000' },
-                      { label: '2,000 - 5,000 MAD', value: '2000-5000' },
-                      { label: 'Over 5,000 MAD', value: '5000-' },
-                    ].map(range => (
-                      <label key={range.value} className="flex items-center">
-                        <input
-                          type="radio"
-                          name="priceRange"
-                          value={range.value}
-                          checked={filters.priceRange === range.value}
-                          onChange={() => handleFilterChange('priceRange', range.value)}
-                          className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                        />
-                        <span className="ml-2 text-luxury-gray">{range.label}</span>
-                      </label>
-                    ))}
                   </div>
+                  
+                  <AnimatePresence>
+                    {categoryDropdownOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 pb-2 px-2 bg-gradient-to-b from-cream-100 to-white rounded-b-md mt-2 shadow-sm border border-luxury-gold/10">
+                          {loadingCategories ? (
+                            <p className="text-sm text-luxury-gray p-2">Loading categories...</p>
+                          ) : (
+                            <div className="space-y-3">
+                              <div 
+                                className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.category === 'all' ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                onClick={() => {
+                                  handleFilterChange('category', 'all');
+                                  setCategoryDropdownOpen(false);
+                                }}
+                              >
+                                <span className="text-sm">All Products</span>
+                                {filters.category === 'all' && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                )}
+                              </div>
+                              
+                              {dbCategories.map(cat => (
+                                <div 
+                                  key={cat.id} 
+                                  className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.category === cat.slug ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                  onClick={() => {
+                                    handleFilterChange('category', cat.slug);
+                                    setCategoryDropdownOpen(false);
+                                  }}
+                                >
+                                  <span className="text-sm">{cat.name}</span>
+                                  {filters.category === cat.slug && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                {/* Brand Filter Dropdown */}
+                <div className="mb-8">
+                  <div 
+                    className="flex justify-between items-center cursor-pointer py-2 border-b border-luxury-gold/20 hover:border-luxury-gold transition-all duration-300"
+                    onClick={() => setBrandDropdownOpen(!brandDropdownOpen)}
+                  >
+                    <h4 className="text-sm font-medium text-luxury-black">Brand</h4>
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm text-luxury-gold font-medium">
+                        {filters.brand === 'all' ? 'All Brands' : dbBrands.find(brand => brand.slug === filters.brand)?.name || 'All Brands'}
+                      </span>
+                      {brandDropdownOpen ? (
+                        <ChevronUp size={16} className="text-luxury-gold" />
+                      ) : (
+                        <ChevronDown size={16} className="text-luxury-gold" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {brandDropdownOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 pb-2 px-2 bg-gradient-to-b from-cream-100 to-white rounded-b-md mt-2 shadow-sm border border-luxury-gold/10">
+                          {loadingBrands ? (
+                            <p className="text-sm text-luxury-gray p-2">Loading brands...</p>
+                          ) : (
+                            <div className="space-y-3">
+                              <div 
+                                className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.brand === 'all' ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                onClick={() => {
+                                  handleFilterChange('brand', 'all');
+                                  setBrandDropdownOpen(false);
+                                }}
+                              >
+                                <span className="text-sm">All Brands</span>
+                                {filters.brand === 'all' && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                )}
+                              </div>
+                              
+                              {dbBrands.map(brand => (
+                                <div 
+                                  key={brand.id} 
+                                  className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.brand === brand.slug ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                  onClick={() => {
+                                    handleFilterChange('brand', brand.slug);
+                                    setBrandDropdownOpen(false);
+                                  }}
+                                >
+                                  <span className="text-sm">{brand.name}</span>
+                                  {filters.brand === brand.slug && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                {/* Price Range Filter Dropdown */}
+                <div className="mb-8">
+                  <div 
+                    className="flex justify-between items-center cursor-pointer py-2 border-b border-luxury-gold/20 hover:border-luxury-gold transition-all duration-300"
+                    onClick={() => setPriceDropdownOpen(!priceDropdownOpen)}
+                  >
+                    <h4 className="text-sm font-medium text-luxury-black">Price Range</h4>
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm text-luxury-gold font-medium">
+                        {filters.priceRange === 'all' 
+                          ? 'All Prices' 
+                          : (() => {
+                              const ranges = {
+                                '0-1000': 'Under 1,000 MAD',
+                                '1000-2000': '1,000 - 2,000 MAD',
+                                '2000-5000': '2,000 - 5,000 MAD',
+                                '5000-': 'Over 5,000 MAD'
+                              };
+                              return ranges[filters.priceRange as keyof typeof ranges] || 'All Prices';
+                            })()
+                        }
+                      </span>
+                      {priceDropdownOpen ? (
+                        <ChevronUp size={16} className="text-luxury-gold" />
+                      ) : (
+                        <ChevronDown size={16} className="text-luxury-gold" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {priceDropdownOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 pb-2 px-2 bg-gradient-to-b from-cream-100 to-white rounded-b-md mt-2 shadow-sm border border-luxury-gold/10">
+                          <div className="space-y-3">
+                            <div 
+                              className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.priceRange === 'all' ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                              onClick={() => {
+                                handleFilterChange('priceRange', 'all');
+                                setPriceDropdownOpen(false);
+                              }}
+                            >
+                              <span className="text-sm">All Prices</span>
+                              {filters.priceRange === 'all' && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                              )}
+                            </div>
+                            
+                            {[
+                              { label: 'Under 1,000 MAD', value: '0-1000' },
+                              { label: '1,000 - 2,000 MAD', value: '1000-2000' },
+                              { label: '2,000 - 5,000 MAD', value: '2000-5000' },
+                              { label: 'Over 5,000 MAD', value: '5000-' },
+                            ].map(range => (
+                              <div 
+                                key={range.value} 
+                                className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.priceRange === range.value ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                onClick={() => {
+                                  handleFilterChange('priceRange', range.value);
+                                  setPriceDropdownOpen(false);
+                                }}
+                              >
+                                <span className="text-sm">{range.label}</span>
+                                {filters.priceRange === range.value && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
@@ -517,95 +634,229 @@ const ShopPage: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 pb-20 overflow-y-auto h-[calc(100vh-60px)]" style={{ scrollbarWidth: 'thin' }}>
-                {/* Category Filter */}
+                {/* Category Filter Dropdown - Mobile */}
                 <div className="mb-8">
-                  <h4 className="text-sm font-medium text-luxury-black mb-3">Category</h4>
-                  {loadingCategories ? (
-                    <p className="text-sm text-luxury-gray">Loading categories...</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="category-mobile"
-                          value="all"
-                          checked={filters.category === 'all'}
-                          onChange={() => handleFilterChange('category', 'all')}
-                          className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                        />
-                        <span className="ml-2 text-luxury-gray">All Products</span>
-                      </label>
-                      {dbCategories.map(cat => (
-                        <label key={cat.id} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="category-mobile"
-                            value={cat.slug}
-                            checked={filters.category === cat.slug}
-                            onChange={() => handleFilterChange('category', cat.slug)}
-                            className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                          />
-                          <span className="ml-2 text-luxury-gray">{cat.name}</span>
-                        </label>
-                      ))}
+                  <div 
+                    className="flex justify-between items-center cursor-pointer py-2 border-b border-luxury-gold/20 hover:border-luxury-gold transition-all duration-300"
+                    onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                  >
+                    <h4 className="text-sm font-medium text-luxury-black">Category</h4>
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm text-luxury-gold font-medium">
+                        {filters.category === 'all' ? 'All Products' : dbCategories.find(cat => cat.slug === filters.category)?.name || 'All Products'}
+                      </span>
+                      {categoryDropdownOpen ? (
+                        <ChevronUp size={16} className="text-luxury-gold" />
+                      ) : (
+                        <ChevronDown size={16} className="text-luxury-gold" />
+                      )}
                     </div>
-                  )}
+                  </div>
+                  
+                  <AnimatePresence>
+                    {categoryDropdownOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 pb-2 px-2 bg-gradient-to-b from-cream-100 to-white rounded-b-md mt-2 shadow-sm border border-luxury-gold/10">
+                          {loadingCategories ? (
+                            <p className="text-sm text-luxury-gray p-2">Loading categories...</p>
+                          ) : (
+                            <div className="space-y-3">
+                              <div 
+                                className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.category === 'all' ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                onClick={() => {
+                                  handleFilterChange('category', 'all');
+                                  setCategoryDropdownOpen(false);
+                                  toggleMobileFilters();
+                                }}
+                              >
+                                <span className="text-sm">All Products</span>
+                                {filters.category === 'all' && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                )}
+                              </div>
+                              
+                              {dbCategories.map(cat => (
+                                <div 
+                                  key={cat.id} 
+                                  className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.category === cat.slug ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                  onClick={() => {
+                                    handleFilterChange('category', cat.slug);
+                                    setCategoryDropdownOpen(false);
+                                    toggleMobileFilters();
+                                  }}
+                                >
+                                  <span className="text-sm">{cat.name}</span>
+                                  {filters.category === cat.slug && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 
-                {/* Brand Filter */}
+                {/* Brand Filter Dropdown - Mobile */}
                 <div className="mb-8">
-                  <h4 className="text-sm font-medium text-luxury-black mb-3">Brand</h4>
-                  <div className="space-y-2">
-                    {dbBrands.map((brand: Brand) => (
-                      <label key={brand.id} className="flex items-center">
-                        <input
-                          type="radio"
-                          name="brand-mobile"
-                          value={brand.slug}
-                          checked={filters.brand === brand.slug}
-                          onChange={() => handleFilterChange('brand', brand.slug)}
-                          className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                        />
-                        <span className="ml-2 text-luxury-gray">{brand.name}</span>
-                      </label>
-                    ))}
+                  <div 
+                    className="flex justify-between items-center cursor-pointer py-2 border-b border-luxury-gold/20 hover:border-luxury-gold transition-all duration-300"
+                    onClick={() => setBrandDropdownOpen(!brandDropdownOpen)}
+                  >
+                    <h4 className="text-sm font-medium text-luxury-black">Brand</h4>
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm text-luxury-gold font-medium">
+                        {filters.brand === 'all' ? 'All Brands' : dbBrands.find(brand => brand.slug === filters.brand)?.name || 'All Brands'}
+                      </span>
+                      {brandDropdownOpen ? (
+                        <ChevronUp size={16} className="text-luxury-gold" />
+                      ) : (
+                        <ChevronDown size={16} className="text-luxury-gold" />
+                      )}
+                    </div>
                   </div>
+                  
+                  <AnimatePresence>
+                    {brandDropdownOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 pb-2 px-2 bg-gradient-to-b from-cream-100 to-white rounded-b-md mt-2 shadow-sm border border-luxury-gold/10">
+                          {loadingBrands ? (
+                            <p className="text-sm text-luxury-gray p-2">Loading brands...</p>
+                          ) : (
+                            <div className="space-y-3">
+                              <div 
+                                className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.brand === 'all' ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                onClick={() => {
+                                  handleFilterChange('brand', 'all');
+                                  setBrandDropdownOpen(false);
+                                  toggleMobileFilters();
+                                }}
+                              >
+                                <span className="text-sm">All Brands</span>
+                                {filters.brand === 'all' && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                )}
+                              </div>
+                              
+                              {dbBrands.map(brand => (
+                                <div 
+                                  key={brand.id} 
+                                  className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.brand === brand.slug ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                  onClick={() => {
+                                    handleFilterChange('brand', brand.slug);
+                                    setBrandDropdownOpen(false);
+                                    toggleMobileFilters();
+                                  }}
+                                >
+                                  <span className="text-sm">{brand.name}</span>
+                                  {filters.brand === brand.slug && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 
-                {/* Price Range Filter */}
+                {/* Price Range Filter Dropdown - Mobile */}
                 <div className="mb-8">
-                  <h4 className="text-sm font-medium text-luxury-black mb-3">Price Range</h4>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="priceRange-mobile"
-                        value="all"
-                        checked={filters.priceRange === 'all'}
-                        onChange={() => handleFilterChange('priceRange', 'all')}
-                        className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                      />
-                      <span className="ml-2 text-luxury-gray">All Prices</span>
-                    </label>
-                    {[
-                      { label: 'Under 1,000 MAD', value: '0-1000' },
-                      { label: '1,000 - 2,000 MAD', value: '1000-2000' },
-                      { label: '2,000 - 5,000 MAD', value: '2000-5000' },
-                      { label: 'Over 5,000 MAD', value: '5000-' },
-                    ].map(range => (
-                      <label key={range.value} className="flex items-center">
-                        <input
-                          type="radio"
-                          name="priceRange-mobile"
-                          value={range.value}
-                          checked={filters.priceRange === range.value}
-                          onChange={() => handleFilterChange('priceRange', range.value)}
-                          className="h-4 w-4 border-luxury-gray text-luxury-gold focus:ring-luxury-gold"
-                        />
-                        <span className="ml-2 text-luxury-gray">{range.label}</span>
-                      </label>
-                    ))}
+                  <div 
+                    className="flex justify-between items-center cursor-pointer py-2 border-b border-luxury-gold/20 hover:border-luxury-gold transition-all duration-300"
+                    onClick={() => setPriceDropdownOpen(!priceDropdownOpen)}
+                  >
+                    <h4 className="text-sm font-medium text-luxury-black">Price Range</h4>
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm text-luxury-gold font-medium">
+                        {filters.priceRange === 'all' 
+                          ? 'All Prices' 
+                          : (() => {
+                              const ranges = {
+                                '0-1000': 'Under 1,000 MAD',
+                                '1000-2000': '1,000 - 2,000 MAD',
+                                '2000-5000': '2,000 - 5,000 MAD',
+                                '5000-': 'Over 5,000 MAD'
+                              };
+                              return ranges[filters.priceRange as keyof typeof ranges] || 'All Prices';
+                            })()
+                        }
+                      </span>
+                      {priceDropdownOpen ? (
+                        <ChevronUp size={16} className="text-luxury-gold" />
+                      ) : (
+                        <ChevronDown size={16} className="text-luxury-gold" />
+                      )}
+                    </div>
                   </div>
+                  
+                  <AnimatePresence>
+                    {priceDropdownOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 pb-2 px-2 bg-gradient-to-b from-cream-100 to-white rounded-b-md mt-2 shadow-sm border border-luxury-gold/10">
+                          <div className="space-y-3">
+                            <div 
+                              className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.priceRange === 'all' ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                              onClick={() => {
+                                handleFilterChange('priceRange', 'all');
+                                setPriceDropdownOpen(false);
+                                toggleMobileFilters();
+                              }}
+                            >
+                              <span className="text-sm">All Prices</span>
+                              {filters.priceRange === 'all' && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                              )}
+                            </div>
+                            
+                            {[
+                              { label: 'Under 1,000 MAD', value: '0-1000' },
+                              { label: '1,000 - 2,000 MAD', value: '1000-2000' },
+                              { label: '2,000 - 5,000 MAD', value: '2000-5000' },
+                              { label: 'Over 5,000 MAD', value: '5000-' },
+                            ].map(range => (
+                              <div 
+                                key={range.value} 
+                                className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ${filters.priceRange === range.value ? 'bg-luxury-gold/10 text-luxury-black' : 'hover:bg-luxury-gold/5 text-luxury-gray hover:text-luxury-black'}`}
+                                onClick={() => {
+                                  handleFilterChange('priceRange', range.value);
+                                  setPriceDropdownOpen(false);
+                                  toggleMobileFilters();
+                                }}
+                              >
+                                <span className="text-sm">{range.label}</span>
+                                {filters.priceRange === range.value && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-luxury-gold"></div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 
                 {/* Fixed buttons at the bottom of mobile screen with luxury styling */}
