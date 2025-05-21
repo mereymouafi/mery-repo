@@ -633,7 +633,7 @@ const ShopPage: React.FC = () => {
                   <X size={24} />
                 </button>
               </div>
-              <div className="p-4 pb-20 overflow-y-auto h-[calc(100vh-60px)]" style={{ scrollbarWidth: 'thin' }}>
+              <div className="p-4 overflow-y-auto h-[calc(100vh-60px)]" style={{ scrollbarWidth: 'thin' }}>
                 {/* Category Filter Dropdown - Mobile */}
                 <div className="mb-8">
                   <div 
@@ -859,10 +859,10 @@ const ShopPage: React.FC = () => {
                   </AnimatePresence>
                 </div>
                 
-                {/* Fixed buttons at the bottom of mobile screen with luxury styling */}
-                <div className="fixed bottom-0 left-0 right-0 flex space-x-0 bg-gradient-to-b from-white to-luxury-cream shadow-lg border-t border-luxury-gold/20 z-50">
+                {/* Buttons right below price range filter */}
+                <div className="mt-6 mb-2 flex space-x-0 bg-gradient-to-b from-white to-luxury-cream shadow-md border border-luxury-gold/20 rounded-md overflow-hidden">
                   <button
-                    className="flex-1 py-4 border-r border-luxury-gold/20 bg-white text-luxury-black font-medium uppercase tracking-wider text-sm transition-colors hover:bg-luxury-black hover:text-white"
+                    className="flex-1 py-3 border-r border-luxury-gold/20 bg-white text-luxury-black font-medium uppercase tracking-wider text-sm transition-colors hover:bg-luxury-black hover:text-white"
                     onClick={() => {
                       setFilters({
                         category: 'all',
@@ -876,7 +876,7 @@ const ShopPage: React.FC = () => {
                     Reset
                   </button>
                   <button
-                    className="flex-1 py-4 bg-luxury-gold text-luxury-black font-medium uppercase tracking-wider text-sm transition-colors hover:bg-luxury-gold-light"
+                    className="flex-1 py-3 bg-luxury-gold text-luxury-black font-medium uppercase tracking-wider text-sm transition-colors hover:bg-luxury-gold-light"
                     onClick={toggleMobileFilters}
                   >
                     Apply
