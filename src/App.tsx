@@ -16,6 +16,7 @@ import CategoriesAdminPage from './pages/CategoriesAdminPage';
 import ProductsAdminPage from './pages/ProductsAdminPage';
 import BrandsAdminPage from './pages/BrandsAdminPage';
 import AdminLoginPage from './pages/AdminLoginPage';
+import AuthCallback from './pages/AuthCallback';
 import NotFoundPage from './pages/NotFoundPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
@@ -55,6 +56,9 @@ function App() {
               <Route path="search" element={<SearchResultsPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
+            
+            {/* Auth Callback Route - Handle invitation flow */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
             
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
